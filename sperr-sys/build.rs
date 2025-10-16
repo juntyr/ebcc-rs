@@ -27,6 +27,8 @@ fn main() {
             "OFF"
         },
     );
+    config.cflag("-DEXPERIMENTING");
+    config.cxxflag("-DEXPERIMENTING");
     let sperr_out = config.build();
 
     println!("cargo::rustc-link-search=native={}", sperr_out.display());

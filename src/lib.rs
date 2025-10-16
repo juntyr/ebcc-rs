@@ -42,6 +42,11 @@ pub enum CompressionMode {
         /// positive point-wise (absolute) error
         pwe: f64,
     },
+    /// Fixed quantisation step
+    QuantisationStep {
+        /// positive quantisation step
+        q: f64,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -67,6 +72,7 @@ impl CompressionMode {
             Self::BitsPerPixel { .. } => 1,
             Self::PeakSignalToNoiseRatio { .. } => 2,
             Self::PointwiseError { .. } => 3,
+            Self::QuantisationStep { .. } => -4,
         }
     }
 
@@ -74,7 +80,8 @@ impl CompressionMode {
         match self {
             Self::BitsPerPixel { bpp: quality }
             | Self::PeakSignalToNoiseRatio { psnr: quality }
-            | Self::PointwiseError { pwe: quality } => quality,
+            | Self::PointwiseError { pwe: quality }
+            | Self::QuantisationStep { q: quality } => quality,
         }
     }
 }
@@ -403,5 +410,10 @@ mod tests {
     #[test]
     fn compress_decompress_pwe() {
         compress_decompress(CompressionMode::PointwiseError { pwe: 0.1 });
+    }
+
+    #[test]
+    fn compress_decompress_q() {
+        compress_decompress(CompressionMode::QuantisationStep { q: 3.0 });
     }
 }
