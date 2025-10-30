@@ -12,7 +12,7 @@ readme = "README.md"
 categories = ["api-bindings", "compression", "encoding"]
 keywords = ["SPERR", "bindgen", "compression", "encoding"]
 
-links = "SPERR"
+# links = "SPERR"
 
 exclude = ["/SPERR/.github", "/SPERR/docker", "/SPERR/evaluations", "/SPERR/examples", "/SPERR/handout", "/SPERR/test_data", "/SPERR/test_scripts", "/SPERR/utilities"]
 
@@ -21,6 +21,7 @@ openmp = ["dep:openmp-sys"]
 
 [dependencies]
 openmp-sys = { workspace = true, optional = true }
+zstd-sys = { version = "2.0.10", default-features = false }
 
 [build-dependencies]
 bindgen = { workspace = true, features = ["runtime"] }

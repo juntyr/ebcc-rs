@@ -26,7 +26,7 @@ use ndarray::{ArrayView2, ArrayView3, ArrayViewMut2, ArrayViewMut3};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 /// SPERR compression mode / quality control
-pub enum CompressionMode {
+pub enum CompressionMode<'a> {
     /// Fixed bit-per-pixel rate
     BitsPerPixel {
         /// positive bits-per-pixel
@@ -47,6 +47,15 @@ pub enum CompressionMode {
         /// positive quantisation step
         q: f64,
     },
+    /// Quantity of Interest
+    QuantityOfInterest {
+        /// positive point-wise (absolute) error
+        tol: f64,
+        /// quantity of interest expression
+        qoi: &'a str,
+        /// high precision
+        high_prec: bool,
+    },
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -66,13 +75,14 @@ pub enum Error {
     Other,
 }
 
-impl CompressionMode {
+impl<'a> CompressionMode<'a> {
     const fn as_mode(self) -> c_int {
         match self {
             Self::BitsPerPixel { .. } => 1,
             Self::PeakSignalToNoiseRatio { .. } => 2,
             Self::PointwiseError { .. } => 3,
             Self::QuantisationStep { .. } => -4,
+            Self::QuantityOfInterest { .. } => 5,
         }
     }
 
@@ -81,7 +91,28 @@ impl CompressionMode {
             Self::BitsPerPixel { bpp: quality }
             | Self::PeakSignalToNoiseRatio { psnr: quality }
             | Self::PointwiseError { pwe: quality }
-            | Self::QuantisationStep { q: quality } => quality,
+            | Self::QuantisationStep { q: quality }
+            | Self::QuantityOfInterest { tol: quality, .. } => quality,
+        }
+    }
+
+    const fn as_high_prec(self) -> bool {
+        match self {
+            Self::BitsPerPixel { .. }
+            | Self::PeakSignalToNoiseRatio { .. }
+            | Self::PointwiseError { .. }
+            | Self::QuantisationStep { .. } => false,
+            Self::QuantityOfInterest { high_prec, .. } => high_prec,
+        }
+    }
+
+    const fn as_qoi(self) -> &'a str {
+        match self {
+            Self::BitsPerPixel { .. }
+            | Self::PeakSignalToNoiseRatio { .. }
+            | Self::PointwiseError { .. }
+            | Self::QuantisationStep { .. } => "",
+            Self::QuantityOfInterest { qoi, .. } => qoi,
         }
     }
 }
@@ -102,6 +133,8 @@ pub fn compress_2d<T: Element>(
 
     let mut dst = std::ptr::null_mut();
     let mut dst_len = 0;
+
+    assert!(!matches!(mode, CompressionMode::QuantityOfInterest { .. }));
 
     #[allow(unsafe_code)] // Safety: FFI
     let res = unsafe {
@@ -235,6 +268,9 @@ pub fn compress_3d<T: Element>(
     let mut dst = std::ptr::null_mut();
     let mut dst_len = 0;
 
+    let mut qoi = Vec::from(mode.as_qoi().as_bytes());
+    qoi.push(b'\0');
+
     #[allow(unsafe_code)] // Safety: FFI
     let res = unsafe {
         sperr_sys::sperr_comp_3d(
@@ -251,6 +287,8 @@ pub fn compress_3d<T: Element>(
             0,
             std::ptr::addr_of_mut!(dst),
             std::ptr::addr_of_mut!(dst_len),
+            qoi.as_ptr().cast(),
+            mode.as_high_prec(),
         )
     };
 
@@ -395,6 +433,15 @@ mod tests {
         let mut decompressed = Array3::<f64>::zeros(data.dim());
         decompress_into_3d(compressed.as_slice(), decompressed.view_mut())
             .expect("decompression should not fail");
+
+        let data: Array3<f64> = Array3::zeros((64, 64, 1));
+
+        let compressed =
+            compress_3d(data.view(), mode, (256, 256, 256)).expect("compression should not fail");
+
+        let mut decompressed = Array3::<f64>::zeros(data.dim());
+        decompress_into_3d(compressed.as_slice(), decompressed.view_mut())
+            .expect("decompression should not fail");
     }
 
     #[test]
@@ -415,5 +462,20 @@ mod tests {
     #[test]
     fn compress_decompress_q() {
         compress_decompress(CompressionMode::QuantisationStep { q: 3.0 });
+    }
+
+    #[test]
+    fn compress_decompress_qoi() {
+        compress_decompress(CompressionMode::QuantityOfInterest {
+            tol: 0.1,
+            qoi: "x^2",
+            high_prec: false,
+        });
+
+        compress_decompress(CompressionMode::QuantityOfInterest {
+            tol: 0.1,
+            qoi: "log(x,10)",
+            high_prec: false,
+        });
     }
 }

@@ -12,10 +12,14 @@ fn main() {
     println!("cargo::rerun-if-changed=build.rs");
     println!("cargo::rerun-if-changed=lib.cpp");
     println!("cargo::rerun-if-changed=wrapper.hpp");
-    println!("cargo::rerun-if-changed=SPERR");
+    println!("cargo::rerun-if-changed=QPET-Artifact");
+
+    let zstd_root = env::var("DEP_ZSTD_ROOT")
+        .map(PathBuf::from)
+        .expect("missing zstd dependency");
 
     // use cmake to build SPERR
-    let mut config = cmake::Config::new("SPERR");
+    let mut config = cmake::Config::new("QPET-Artifact");
     config.define("BUILD_SHARED_LIBS", "OFF");
     config.define("BUILD_UNIT_TESTS", "OFF");
     config.define("BUILD_CLI_UTILITIES", "OFF");
@@ -41,6 +45,12 @@ fn main() {
         sperr_out.join("lib64").display()
     );
     println!("cargo::rustc-link-lib=static=SPERR");
+    println!("cargo::rustc-link-lib=static=symengine");
+    // println!("cargo::rustc-link-lib=static=teuchos"); // only in debug mode
+    println!("cargo::rustc-link-lib=static=zstd");
+    println!("cargo::rustc-link-search=native=/opt/homebrew/opt/gmp/lib/");
+    println!("cargo::rustc-link-lib=static=gmp");
+    println!("cargo::rustc-link-lib=static=gmpxx");
 
     let cargo_callbacks = bindgen::CargoCallbacks::new();
     let bindings = bindgen::Builder::default()
@@ -48,6 +58,7 @@ fn main() {
         .clang_arg("c++")
         .clang_arg("-std=c++17")
         .clang_arg(format!("-I{}", sperr_out.join("include").display()))
+        .clang_arg(format!("-I{}", zstd_root.join("include").display()))
         .header("wrapper.hpp")
         .parse_callbacks(Box::new(cargo_callbacks))
         .allowlist_function("sperr_comp_2d")
@@ -78,7 +89,8 @@ fn main() {
         .cpp(true)
         .std("c++17")
         .include(sperr_out.join("include"))
-        .include(Path::new("SPERR").join("src"))
+        .include(zstd_root.join("include"))
+        .include(Path::new("QPET-Artifact").join("src"))
         .file("lib.cpp")
         .warnings(false);
 

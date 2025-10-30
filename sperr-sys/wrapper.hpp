@@ -50,9 +50,11 @@ int sperr_comp_3d(
     double quality,
     size_t nthreads,
     void **dst,
-    size_t *dst_len)
+    size_t *dst_len,
+    const char* qoi,
+    bool high_prec)
 {
-    return C_API::sperr_comp_3d(src, is_float, dimx, dimy, dimz, chunk_x, chunk_y, chunk_z, mode, quality, nthreads, dst, dst_len);
+    return C_API::sperr_comp_3d(src, is_float, dimx, dimy, dimz, chunk_x, chunk_y, chunk_z, mode, quality, nthreads, dst, dst_len, qoi, high_prec);
 }
 
 int sperr_decomp_3d(
