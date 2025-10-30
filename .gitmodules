@@ -1,6 +1,3 @@
-[submodule "sperr-sys/SPERR"]
-	path = sperr-sys/SPERR
-	url = https://github.com/juntyr/SPERR.git
 [submodule "sperr-sys/QPET-Artifact"]
 	path = sperr-sys/QPET-Artifact
 	url = https://github.com/juntyr/QPET-Artifact.git

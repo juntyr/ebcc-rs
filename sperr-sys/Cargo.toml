@@ -12,6 +12,7 @@ readme = "README.md"
 categories = ["api-bindings", "compression", "encoding"]
 keywords = ["SPERR", "bindgen", "compression", "encoding"]
 
+# TODO: rename and readd
 # links = "SPERR"
 
 exclude = ["/SPERR/.github", "/SPERR/docker", "/SPERR/evaluations", "/SPERR/examples", "/SPERR/handout", "/SPERR/test_data", "/SPERR/test_scripts", "/SPERR/utilities"]

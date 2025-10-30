@@ -14,12 +14,17 @@ fn main() {
     println!("cargo::rerun-if-changed=wrapper.hpp");
     println!("cargo::rerun-if-changed=QPET-Artifact");
 
+    let out_dir = env::var("OUT_DIR")
+        .map(PathBuf::from)
+        .expect("missing OUT_DIR");
+
     let zstd_root = env::var("DEP_ZSTD_ROOT")
         .map(PathBuf::from)
         .expect("missing zstd dependency");
 
     // use cmake to build SPERR
     let mut config = cmake::Config::new("QPET-Artifact");
+    // TODO: don't build symengine tests
     config.define("BUILD_SHARED_LIBS", "OFF");
     config.define("BUILD_UNIT_TESTS", "OFF");
     config.define("BUILD_CLI_UTILITIES", "OFF");
@@ -33,6 +38,14 @@ fn main() {
     );
     config.cflag("-DEXPERIMENTING");
     config.cxxflag("-DEXPERIMENTING");
+    config.cflag(format!(
+        "-I{}",
+        out_dir.join("build").join("symengine").display()
+    ));
+    config.cxxflag(format!(
+        "-I{}",
+        out_dir.join("build").join("symengine").display()
+    ));
     let sperr_out = config.build();
 
     println!("cargo::rustc-link-search=native={}", sperr_out.display());
@@ -48,7 +61,9 @@ fn main() {
     println!("cargo::rustc-link-lib=static=symengine");
     // println!("cargo::rustc-link-lib=static=teuchos"); // only in debug mode
     println!("cargo::rustc-link-lib=static=zstd");
+    // TODO: build gmp ourselves
     println!("cargo::rustc-link-search=native=/opt/homebrew/opt/gmp/lib/");
+    // TODO: which one of these two do we need to link?
     println!("cargo::rustc-link-lib=static=gmp");
     println!("cargo::rustc-link-lib=static=gmpxx");
 
