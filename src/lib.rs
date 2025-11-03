@@ -20,7 +20,7 @@
 //!
 //! [SPERR]: https://github.com/NCAR/SPERR
 
-use std::num::NonZeroU32;
+use std::{ffi::c_int, num::NonZeroU16};
 
 use ndarray::{ArrayView3, ArrayViewMut3};
 
@@ -28,17 +28,19 @@ use ndarray::{ArrayView3, ArrayViewMut3};
 #[non_exhaustive]
 /// QPET-SPERR compression mode / quality control
 pub enum CompressionMode<'a> {
-    /// Symbolic Quantity of Interest (QoI)
+    /// Symbolic Quantity of Interest
     SymbolicQuantityOfInterest {
         /// quantity of interest expression
         qoi: &'a str,
-        /// block size over which the QoI errors are averaged, 1 for pointwise
-        qoi_block_size: NonZeroU32,
-        /// positive (pointwise) absolute error bound over the QoI
+        /// block size over which the quantity of interest errors are averaged,
+        /// 1 for pointwise
+        qoi_block_size: NonZeroU16,
+        /// positive (pointwise) absolute error bound over the quantity of
+        /// interest
         qoi_pwe: f64,
         /// optional positive pointwise absolute error bound over the data
         data_pwe: Option<f64>,
-        /// positive QoI k parameter (3.0 is a good default)
+        /// positive quantity of interest k parameter (3.0 is a good default)
         qoi_k: f64,
         /// high precision mode for SPERR, useful for small error bounds
         high_prec: bool,
@@ -113,7 +115,7 @@ pub fn compress_3d<T: Element>(
             std::ptr::addr_of_mut!(dst_len),
             qoi.as_ptr().cast(),
             qoi_pwe,
-            qoi_block_size.get() as _,
+            c_int::from(qoi_block_size.get()),
             qoi_k,
             high_prec,
         )
@@ -275,7 +277,7 @@ mod tests {
     fn compress_decompress_square() {
         compress_decompress(CompressionMode::SymbolicQuantityOfInterest {
             qoi: "x^2",
-            qoi_block_size: NonZeroU32::MIN,
+            qoi_block_size: NonZeroU16::MIN,
             qoi_pwe: 0.1,
             data_pwe: None,
             qoi_k: 3.0,
@@ -284,7 +286,7 @@ mod tests {
 
         compress_decompress(CompressionMode::SymbolicQuantityOfInterest {
             qoi: "x^2",
-            qoi_block_size: NonZeroU32::MIN.saturating_add(2),
+            qoi_block_size: NonZeroU16::MIN.saturating_add(2),
             qoi_pwe: 0.1,
             data_pwe: None,
             qoi_k: 3.0,
@@ -296,7 +298,7 @@ mod tests {
     fn compress_decompress_log10() {
         compress_decompress(CompressionMode::SymbolicQuantityOfInterest {
             qoi: "log(x,10)",
-            qoi_block_size: NonZeroU32::MIN,
+            qoi_block_size: NonZeroU16::MIN,
             qoi_pwe: 0.1,
             data_pwe: None,
             qoi_k: 3.0,
@@ -305,7 +307,7 @@ mod tests {
 
         compress_decompress(CompressionMode::SymbolicQuantityOfInterest {
             qoi: "log(x,10)",
-            qoi_block_size: NonZeroU32::MIN.saturating_add(2),
+            qoi_block_size: NonZeroU16::MIN.saturating_add(2),
             qoi_pwe: 0.1,
             data_pwe: None,
             qoi_k: 3.0,

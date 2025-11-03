@@ -18,6 +18,8 @@ fn main() {
         .map(PathBuf::from)
         .expect("missing OUT_DIR");
 
+    let gmp_root = Path::new("/opt/homebrew/opt/gmp");
+
     let zstd_root = env::var("DEP_ZSTD_ROOT")
         .map(PathBuf::from)
         .expect("missing zstd dependency");
@@ -42,6 +44,8 @@ fn main() {
         },
     );
     // > QPET-SPERR config
+    config.cflag(format!("-I{}", gmp_root.join("include").display()));
+    config.cxxflag(format!("-I{}", gmp_root.join("include").display()));
     config.cflag(format!(
         "-I{}",
         out_dir.join("build").join("symengine").display()
@@ -50,6 +54,8 @@ fn main() {
         "-I{}",
         out_dir.join("build").join("symengine").display()
     ));
+    config.cflag(format!("-I{}", zstd_root.join("include").display()));
+    config.cxxflag(format!("-I{}", zstd_root.join("include").display()));
     let qpet_sperr_out = config.build();
 
     println!(
@@ -69,7 +75,10 @@ fn main() {
     // TODO: println!("cargo::rustc-link-lib=static=teuchos"); // only in debug mode
     println!("cargo::rustc-link-lib=static=zstd");
     // TODO: build gmp ourselves
-    println!("cargo::rustc-link-search=native=/opt/homebrew/opt/gmp/lib/");
+    println!(
+        "cargo::rustc-link-search=native={}",
+        gmp_root.join("lib").display()
+    );
     // TODO: once we build gmp ourselves, always link it statically
     println!("cargo::rustc-link-lib=gmp");
 
