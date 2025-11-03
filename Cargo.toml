@@ -19,7 +19,7 @@ qpet-sperr-sys = { version = "0.1", path = "qpet-sperr-sys", default-features = 
 # crates.io third-party dependencies
 bindgen = { version = "0.72", default-features = false }
 cc = { version = "1.2", default-features = false }
-cmake = { version = "0.1.26", default-features = false }
+cmake = { version = "0.1.45", default-features = false }
 ndarray = { version = "0.16", default-features = false, features = ["std"] }
 openmp-sys = { version = "1.2", default-features = false }
 thiserror = { version = "2.0", default-features = false }
