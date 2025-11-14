@@ -13,7 +13,7 @@ fn main() {
     println!("cargo::rerun-if-changed=build.rs");
     println!("cargo::rerun-if-changed=lib.cpp");
     println!("cargo::rerun-if-changed=wrapper.hpp");
-    println!("cargo::rerun-if-changed=QPET-Artifact");
+    println!("cargo::rerun-if-changed=SPERR");
 
     let out_dir = env::var("OUT_DIR")
         .map(PathBuf::from)
@@ -28,7 +28,7 @@ fn main() {
         .expect("missing zstd dependency");
 
     // use cmake to build QPET-SPERR
-    let mut config = cmake::Config::new("QPET-Artifact");
+    let mut config = cmake::Config::new("SPERR");
     if let Ok(ar) = env::var("AR") {
         config.define("CMAKE_AR", ar);
     }
@@ -156,7 +156,7 @@ fn main() {
         .std("c++17")
         .include(qpet_sperr_include)
         .include(zstd_include)
-        .include(Path::new("QPET-Artifact").join("src"))
+        .include(Path::new("SPERR").join("src"))
         .file("lib.cpp")
         .warnings(false);
 

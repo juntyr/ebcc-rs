@@ -27,11 +27,13 @@ int qpet_sperr_comp_3d(
     size_t *dst_len,
     const char* qoi,
     double qoi_pw,
-    int qoi_block_size,
+    size_t qoi_bs_x,
+    size_t qoi_bs_y,
+    size_t qoi_bs_z,
     double qoi_k,
     bool high_prec)
 {
-    return C_API::qpet_sperr_comp_3d(src, is_float, dimx, dimy, dimz, chunk_x, chunk_y, chunk_z, data_pwe, nthreads, dst, dst_len, qoi, qoi_pw, qoi_block_size, qoi_k, high_prec);
+    return C_API::qpet_sperr_comp_3d(src, is_float, dimx, dimy, dimz, chunk_x, chunk_y, chunk_z, data_pwe, nthreads, dst, dst_len, qoi, qoi_pw, qoi_bs_x, qoi_bs_y, qoi_bs_z, qoi_k, high_prec);
 }
 
 int sperr_decomp_3d(

@@ -20,7 +20,7 @@
 //!
 //! [QPET-SPERR]: https://github.com/JLiu-1/QPET-Artifact/tree/sperr_qpet_revision
 
-use std::{ffi::c_int, num::NonZeroU16};
+use std::num::NonZeroUsize;
 
 use ndarray::{ArrayView3, ArrayViewMut3};
 
@@ -32,9 +32,9 @@ pub enum CompressionMode<'a> {
     SymbolicQuantityOfInterest {
         /// quantity of interest expression
         qoi: &'a str,
-        /// block size over which the quantity of interest errors are averaged,
-        /// 1 for pointwise
-        qoi_block_size: NonZeroU16,
+        /// 3D block size (z,y,x) over which the quantity of interest errors
+        /// are averaged, 1x1x1 for pointwise
+        qoi_block_size: (NonZeroUsize, NonZeroUsize, NonZeroUsize),
         /// positive (pointwise) absolute error bound over the quantity of
         /// interest
         qoi_pwe: f64,
@@ -112,7 +112,9 @@ pub fn compress_3d<T: Element>(
             std::ptr::addr_of_mut!(dst_len),
             qoi.as_ptr().cast(),
             qoi_pwe,
-            c_int::from(qoi_block_size.get()),
+            qoi_block_size.2.get(),
+            qoi_block_size.1.get(),
+            qoi_block_size.0.get(),
             qoi_k,
             high_prec,
         )
@@ -244,6 +246,9 @@ mod tests {
 
     use super::*;
 
+    const ONE: NonZeroUsize = NonZeroUsize::MIN;
+    const THREE: NonZeroUsize = ONE.saturating_add(2);
+
     fn compress_decompress(mode: CompressionMode) {
         let data = linspace(1.0, 10.0, 128 * 128 * 128).collect::<Array1<f64>>()
             + logspace(2.0, 0.0, 5.0, 128 * 128 * 128)
@@ -274,7 +279,7 @@ mod tests {
     fn compress_decompress_square() {
         compress_decompress(CompressionMode::SymbolicQuantityOfInterest {
             qoi: "x^2",
-            qoi_block_size: NonZeroU16::MIN,
+            qoi_block_size: (ONE, ONE, ONE),
             qoi_pwe: 0.1,
             data_pwe: None,
             qoi_k: 3.0,
@@ -283,7 +288,7 @@ mod tests {
 
         // compress_decompress(CompressionMode::SymbolicQuantityOfInterest {
         //     qoi: "x^2",
-        //     qoi_block_size: NonZeroU16::MIN.saturating_add(2),
+        //     qoi_block_size: (THREE, THREE, THREE),
         //     qoi_pwe: 0.1,
         //     data_pwe: None,
         //     qoi_k: 3.0,
@@ -295,7 +300,7 @@ mod tests {
     fn compress_decompress_log10() {
         compress_decompress(CompressionMode::SymbolicQuantityOfInterest {
             qoi: "log(x,10)",
-            qoi_block_size: NonZeroU16::MIN,
+            qoi_block_size: (ONE, ONE, ONE),
             qoi_pwe: 0.1,
             data_pwe: None,
             qoi_k: 3.0,
@@ -304,7 +309,7 @@ mod tests {
 
         // compress_decompress(CompressionMode::SymbolicQuantityOfInterest {
         //     qoi: "log(x,10)",
-        //     qoi_block_size: NonZeroU16::MIN.saturating_add(2),
+        //     qoi_block_size: (THREE, THREE, THREE),
         //     qoi_pwe: 0.1,
         //     data_pwe: None,
         //     qoi_k: 3.0,
