@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["ebcc_decode","ebcc_encode","free_buffer"],"mod":["residual_t"],"struct":["codec_config_t"]};

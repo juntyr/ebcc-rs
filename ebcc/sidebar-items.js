@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["EBCCError","ResidualType"],"fn":["ebcc_decode","ebcc_encode"],"struct":["EBCCConfig"],"type":["EBCCResult"]};

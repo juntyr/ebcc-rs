@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":["MAX_ERROR","NONE","RELATIVE_ERROR"],"type":["Type"]};
