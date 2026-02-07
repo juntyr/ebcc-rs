@@ -1,0 +1,78 @@
+[workspace]
+resolver = "2"
+members = [
+    "ebcc-sys"
+]
+
+[workspace.package]
+edition = "2021"
+authors = [
+    "Langwen Huang <langwen.huang@inf.ethz.ch>",
+    "Juniper Tyree <juniper.tyree@helsinki.fi>",
+]
+repository = "https://github.com/juntyr/qpet-sperr-rs"
+license = "MPL-2.0"
+rust-version = "1.82"
+
+[workspace.dependencies]
+# workspace-internal crates
+ebcc = { version = "0.1", path = ".", default-features = false }
+ebcc-sys = { version = "0.1", path = "ebcc-sys", default-features = false }
+
+# crates.io third-party dependencies
+bindgen = { version = "0.72", default-features = false }
+cmake = { version = "0.1.45", default-features = false }
+ndarray = { version = "0.16", default-features = false }
+thiserror = { version = "2.0", default-features = false }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+unstable_features = "forbid"
+unused_crate_dependencies = "warn"
+
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+complexity = { priority = -1, level = "warn" }
+correctness = { priority = -1, level = "warn" }
+nursery = { priority = -1, level = "warn" }
+pedantic = { priority = -1, level = "warn" }
+perf = { priority = -1, level = "warn" }
+style = { priority = -1, level = "warn" }
+suspicious = { priority = -1, level = "warn" }
+
+unwrap_used = "warn"
+expect_used = "warn"
+indexing_slicing = "warn"
+panic = "warn"
+todo = "warn"
+unimplemented = "warn"
+unreachable = "warn"
+module_name_repetitions = "allow"
+
+cargo = { priority = -1, level = "warn" }
+cargo_common_metadata = "warn"
+multiple_crate_versions = "warn"
+
+
+[package]
+name = "ebcc"
+version = "0.1.0"
+edition = { workspace = true }
+authors = { workspace = true }
+repository = { workspace = true }
+license = { workspace = true }
+rust-version = { workspace = true }
+
+description = "High-level Rust bindings to the EBCC compressor"
+readme = "README.md"
+categories = ["api-bindings", "compression", "encoding"]
+keywords = ["EBCC", "compression", "encoding"]
+
+[dependencies]
+ndarray = { workspace = true, features = ["std"] }
+ebcc-sys = { workspace = true }
+thiserror = { workspace = true }
+
+[lints]
+workspace = true

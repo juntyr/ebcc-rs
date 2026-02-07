@@ -1,0 +1,3 @@
+[submodule "ebcc-sys/EBCC"]
+	path = ebcc-sys/EBCC
+	url = https://github.com/spcl/EBCC.git
