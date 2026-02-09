@@ -24,26 +24,4 @@
 <a href=#24 id=24 data-nosnippet>24</a>    </span><span class="doccomment">/// Decompression failed
 <a href=#25 id=25 data-nosnippet>25</a>    </span>DecompressionError(<a href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html">String</a>),
 <a href=#26 id=26 data-nosnippet>26</a>}
-<a href=#27 id=27 data-nosnippet>27</a>
-<a href=#28 id=28 data-nosnippet>28</a><span class="kw">impl </span><a href="#10-26">EBCCError</a> {
-<a href=#29 id=29 data-nosnippet>29</a>    <span class="doccomment">/// Create an [`Self::InvalidInput`] error with a formatted message.
-<a href=#30 id=30 data-nosnippet>30</a>    </span><span class="kw">pub fn </span>invalid_input&lt;S: <a href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html">Into</a>&lt;<a href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html">String</a>&gt;&gt;(msg: S) -&gt; <span class="self">Self </span>{
-<a href=#31 id=31 data-nosnippet>31</a>        <span class="self">Self</span>::<a href="#13">InvalidInput</a>(<a href="#30">msg</a>.<a href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html#tymethod.into">into</a>())
-<a href=#32 id=32 data-nosnippet>32</a>    }
-<a href=#33 id=33 data-nosnippet>33</a>
-<a href=#34 id=34 data-nosnippet>34</a>    <span class="doccomment">/// Create an [`Self::InvalidConfig`] error with a formatted message.
-<a href=#35 id=35 data-nosnippet>35</a>    </span><span class="kw">pub fn </span>invalid_config&lt;S: <a href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html">Into</a>&lt;<a href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html">String</a>&gt;&gt;(msg: S) -&gt; <span class="self">Self </span>{
-<a href=#36 id=36 data-nosnippet>36</a>        <span class="self">Self</span>::<a href="#17">InvalidConfig</a>(<a href="#35">msg</a>.<a href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html#tymethod.into">into</a>())
-<a href=#37 id=37 data-nosnippet>37</a>    }
-<a href=#38 id=38 data-nosnippet>38</a>
-<a href=#39 id=39 data-nosnippet>39</a>    <span class="doccomment">/// Create a [`Self::CompressionError`] with a formatted message.
-<a href=#40 id=40 data-nosnippet>40</a>    </span><span class="kw">pub fn </span>compression_error&lt;S: <a href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html">Into</a>&lt;<a href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html">String</a>&gt;&gt;(msg: S) -&gt; <span class="self">Self </span>{
-<a href=#41 id=41 data-nosnippet>41</a>        <span class="self">Self</span>::<a href="#21">CompressionError</a>(<a href="#40">msg</a>.<a href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html#tymethod.into">into</a>())
-<a href=#42 id=42 data-nosnippet>42</a>    }
-<a href=#43 id=43 data-nosnippet>43</a>
-<a href=#44 id=44 data-nosnippet>44</a>    <span class="doccomment">/// Create a [`Self::DecompressionError`] with a formatted message.
-<a href=#45 id=45 data-nosnippet>45</a>    </span><span class="kw">pub fn </span>decompression_error&lt;S: <a href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html">Into</a>&lt;<a href="https://doc.rust-lang.org/nightly/alloc/string/struct.String.html">String</a>&gt;&gt;(msg: S) -&gt; <span class="self">Self </span>{
-<a href=#46 id=46 data-nosnippet>46</a>        <span class="self">Self</span>::<a href="#25">DecompressionError</a>(<a href="#45">msg</a>.<a href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html#tymethod.into">into</a>())
-<a href=#47 id=47 data-nosnippet>47</a>    }
-<a href=#48 id=48 data-nosnippet>48</a>}
 </code></pre></div></section></main></body></html>
