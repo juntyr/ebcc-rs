@@ -53,9 +53,7 @@ fn test_jpeg2000_only_compression() -> EBCCResult<()> {
 
     assert!(
         max_error < data_range * 0.1,
-        "Max error {} exceeds 10% of data range {}",
-        max_error,
-        data_range
+        "Max error {max_error} exceeds 10% of data range {data_range}",
     );
 
     Ok(())
@@ -86,9 +84,7 @@ fn test_max_error_bounded_compression() -> EBCCResult<()> {
     // For max error bounded, error should be within the specified bound
     assert!(
         max_error <= (config_error + 1e-6),
-        "Max error {} exceeds error bound {}",
-        max_error,
-        config_error,
+        "Max error {max_error} exceeds error bound {config_error}",
     );
 
     Ok(())
@@ -122,9 +118,7 @@ fn test_relative_error_bounded_compression() -> EBCCResult<()> {
 
     assert!(
         max_error < data_range * 0.1,
-        "Max error {} exceeds 10% of data range {}",
-        max_error,
-        data_range,
+        "Max error {max_error} exceeds 10% of data range {data_range}",
     );
 
     Ok(())
@@ -144,28 +138,24 @@ fn test_constant_field() -> EBCCResult<()> {
     for (&orig, &decomp) in data.iter().zip(decompressed.iter()) {
         assert!(
             (orig - decomp).abs() < 1e-6,
-            "Constant field not preserved: {} vs {}",
-            orig,
-            decomp
+            "Constant field not preserved: {orig} vs {decomp}",
         );
     }
 
     // Should compress very well
     let original_size = data.len() * std::mem::size_of::<f32>();
+    #[expect(clippy::cast_precision_loss)]
     let compression_ratio = original_size as f64 / compressed.len() as f64;
 
     println!(
-        "Original size: {} bytes, Compressed size: {} bytes, Ratio: {:.2}:1",
-        original_size,
+        "Original size: {original_size} bytes, Compressed size: {} bytes, Ratio: {compression_ratio:.2}:1",
         compressed.len(),
-        compression_ratio
     );
 
     // Expect at least 2:1 compression for constant fields (was 10:1, but that may be too aggressive)
     assert!(
         compression_ratio >= 2.0,
-        "Constant field should compress to at least 2:1 ratio, got {:.2}:1",
-        compression_ratio
+        "Constant field should compress to at least 2:1 ratio, got {compression_ratio:.2}:1",
     );
 
     Ok(())
@@ -178,9 +168,11 @@ fn test_large_array() -> EBCCResult<()> {
     let width = 1440;
     let frames = 1;
 
+    #[expect(clippy::suboptimal_flops, clippy::cast_precision_loss)]
     let data = Array::from_shape_fn((frames, height, width), |(_k, i, j)| {
         let lat = -90.0 + (i as f32 / height as f32) * 180.0;
         let lon = -180.0 + (j as f32 / width as f32) * 360.0;
+        #[allow(clippy::let_and_return)]
         let temp = 273.15 + 30.0 * (1.0 - lat.abs() / 90.0) + 5.0 * (lon / 180.0).sin();
         temp
     });
@@ -194,12 +186,12 @@ fn test_large_array() -> EBCCResult<()> {
 
     // Check compression ratio
     let original_size = data.len() * std::mem::size_of::<f32>();
+    #[expect(clippy::cast_precision_loss)]
     let compression_ratio = original_size as f64 / compressed.len() as f64;
 
     assert!(
         compression_ratio > 5.0,
-        "Compression ratio {} should be at least 5:1",
-        compression_ratio
+        "Compression ratio {compression_ratio} should be at least 5:1",
     );
 
     // Check error bound is respected
@@ -211,9 +203,7 @@ fn test_large_array() -> EBCCResult<()> {
 
     assert!(
         max_error <= (config_error + 1e-6),
-        "Max error {} exceeds error bound {}",
-        max_error,
-        config_error,
+        "Max error {max_error} exceeds error bound {config_error}",
     );
 
     Ok(())
@@ -246,13 +236,10 @@ fn test_error_bounds() -> EBCCResult<()> {
 
         // Allow reasonable tolerance for compression algorithms (100% + small epsilon)
         // Note: Error-bounded compression is approximate and may exceed bounds slightly
-        let tolerance = error_bound * 1.0 + 1e-4;
+        let tolerance = error_bound * (1.0 + 1e-4);
         assert!(
             max_error <= error_bound + tolerance,
-            "Max error {} exceeds bound {} + tolerance {}",
-            max_error,
-            error_bound,
-            tolerance
+            "Max error {max_error} exceeds bound {error_bound} + tolerance {tolerance}",
         );
     }
 
@@ -260,6 +247,7 @@ fn test_error_bounds() -> EBCCResult<()> {
 }
 
 #[test]
+#[expect(clippy::indexing_slicing)]
 fn test_invalid_inputs() {
     // Test with NaN values
     let mut data_with_nan = Array::from_shape_simple_fn((1, 32, 32), || 1.0);

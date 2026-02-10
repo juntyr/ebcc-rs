@@ -6,7 +6,9 @@
 use ebcc::{ebcc_decode_into, ebcc_encode, EBCCConfig, EBCCResult};
 use ndarray::Array;
 
-#[allow(clippy::cast_precision_loss, clippy::suboptimal_flops)]
+use ::{ebcc_sys as _, thiserror as _};
+
+#[expect(clippy::cast_precision_loss, clippy::suboptimal_flops)]
 fn main() -> EBCCResult<()> {
     println!("EBCC Basic Compression Example");
     println!("=============================");

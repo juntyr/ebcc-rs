@@ -104,7 +104,7 @@ pub fn ebcc_encode(data: ArrayView3<f32>, config: &EBCCConfig) -> EBCCResult<Vec
 
     // Call the C function
     let mut out_buffer: *mut u8 = ptr::null_mut();
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     let compressed_size = unsafe {
         ebcc_sys::ebcc_encode(
             data_copy.as_mut_ptr(),
@@ -121,7 +121,7 @@ pub fn ebcc_encode(data: ArrayView3<f32>, config: &EBCCConfig) -> EBCCResult<Vec
     }
 
     // Copy the compressed data to a Vec and free the C-allocated memory
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     let compressed_data = unsafe {
         let slice = slice::from_raw_parts(out_buffer, compressed_size);
         let vec = slice.to_vec();
@@ -177,7 +177,7 @@ pub fn ebcc_decode_into(
 
     // Call the C function
     let mut out_buffer: *mut f32 = ptr::null_mut();
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     let decompressed_size = unsafe {
         ebcc_sys::ebcc_decode(
             compressed_data_copy.as_mut_ptr(),
@@ -194,7 +194,7 @@ pub fn ebcc_decode_into(
     }
 
     // Copy the decompressed data to a Vec and free the C-allocated memory
-    #[allow(unsafe_code)]
+    #[expect(unsafe_code)]
     let decompressed_slice = unsafe { slice::from_raw_parts(out_buffer, decompressed_size) };
 
     let Ok(decompressed_view) = ArrayView3::from_shape(decompressed_data.dim(), decompressed_slice)
@@ -212,7 +212,7 @@ pub fn ebcc_decode_into(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used, clippy::indexing_slicing)]
+#[expect(clippy::unwrap_used, clippy::indexing_slicing)]
 mod tests {
     use ndarray::Array;
 
