@@ -4,7 +4,7 @@ use crate::error::{EBCCError, EBCCResult};
 
 /// Residual compression types supported by EBCC.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ResidualType {
+pub enum EBCCResidualType {
     /// No residual compression - base JPEG2000 only
     Jpeg2000Only,
     /// Residual compression with absolute maximum error bound
@@ -13,7 +13,7 @@ pub enum ResidualType {
     RelativeError(f32),
 }
 
-impl ResidualType {
+impl EBCCResidualType {
     pub(crate) const fn as_residual(self) -> ebcc_sys::residual_t::Type {
         match self {
             Self::Jpeg2000Only => ebcc_sys::residual_t::NONE,
@@ -37,7 +37,7 @@ pub struct EBCCConfig {
     pub base_cr: f32,
 
     /// Type of residual compression to apply
-    pub residual_compression_type: ResidualType,
+    pub residual_compression_type: EBCCResidualType,
 }
 
 impl Default for EBCCConfig {
@@ -52,7 +52,7 @@ impl EBCCConfig {
     pub const fn new() -> Self {
         Self {
             base_cr: 10.0,
-            residual_compression_type: ResidualType::Jpeg2000Only,
+            residual_compression_type: EBCCResidualType::Jpeg2000Only,
         }
     }
 
@@ -61,7 +61,7 @@ impl EBCCConfig {
     pub const fn jpeg2000_only(base_cr: f32) -> Self {
         Self {
             base_cr,
-            residual_compression_type: ResidualType::Jpeg2000Only,
+            residual_compression_type: EBCCResidualType::Jpeg2000Only,
         }
     }
 
@@ -70,7 +70,7 @@ impl EBCCConfig {
     pub const fn max_absolute_error_bounded(base_cr: f32, error: f32) -> Self {
         Self {
             base_cr,
-            residual_compression_type: ResidualType::AbsoluteError(error),
+            residual_compression_type: EBCCResidualType::AbsoluteError(error),
         }
     }
 
@@ -79,7 +79,7 @@ impl EBCCConfig {
     pub const fn relative_error_bounded(base_cr: f32, error: f32) -> Self {
         Self {
             base_cr,
-            residual_compression_type: ResidualType::RelativeError(error),
+            residual_compression_type: EBCCResidualType::RelativeError(error),
         }
     }
 
@@ -100,14 +100,14 @@ impl EBCCConfig {
 
         // Check residual-specific parameters
         match self.residual_compression_type {
-            ResidualType::AbsoluteError(error) | ResidualType::RelativeError(error) => {
+            EBCCResidualType::AbsoluteError(error) | EBCCResidualType::RelativeError(error) => {
                 if error <= 0.0 {
                     return Err(EBCCError::InvalidConfig(String::from(
                         "Error bound must be positive",
                     )));
                 }
             }
-            ResidualType::Jpeg2000Only => {
+            EBCCResidualType::Jpeg2000Only => {
                 // No additional validation needed
             }
         }

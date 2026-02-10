@@ -17,20 +17,19 @@ fn main() -> EBCCResult<()> {
     let frames = 1;
 
     // Generate synthetic temperature data (in Kelvin)
-    let mut data = Array::zeros((frames, height, width));
-    for ((_f, j, i), d) in data.indexed_iter_mut() {
+    let data = Array::from_shape_fn((frames, height, width), |(_f, i, j)| {
         // Simple synthetic temperature field with spatial variation
         let lat = -90.0 + ((i as f32) / (height as f32)) * 180.0;
         let lon = -180.0 + ((j as f32) / (width as f32)) * 360.0;
 
         // Temperature decreases with latitude, with some variation
+        #[allow(clippy::let_and_return)]
         let temp = 273.15
             + 30.0 * (1.0 - lat.abs() / 90.0)
             + 5.0 * (lon / 180.0).sin()
             + 2.0 * (lat / 90.0 * 4.0).sin();
-
-        *d = temp;
-    }
+        temp
+    });
 
     let total_elements = data.len();
 

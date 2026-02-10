@@ -25,5 +25,5 @@ mod config;
 mod error;
 
 pub use codec::{ebcc_decode_into, ebcc_encode};
-pub use config::{EBCCConfig, ResidualType};
+pub use config::{EBCCConfig, EBCCResidualType};
 pub use error::{EBCCError, EBCCResult};

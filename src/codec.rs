@@ -36,7 +36,7 @@ use crate::error::{EBCCError, EBCCResult};
 /// # Examples
 ///
 /// ```rust
-/// use ebcc::{ebcc_encode, EBCCConfig, ResidualType};
+/// use ebcc::{ebcc_encode, EBCCConfig};
 /// use ndarray::Array;
 ///
 /// # fn main() -> ebcc::EBCCResult<()> {
