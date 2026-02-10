@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["EBCCError","ResidualType"],"fn":["ebcc_decode_into","ebcc_encode"],"struct":["EBCCConfig"],"type":["EBCCResult"]};
+window.SIDEBAR_ITEMS = {"enum":["EBCCError","EBCCResidualType"],"fn":["ebcc_decode_into","ebcc_encode"],"struct":["EBCCConfig"],"type":["EBCCResult"]};
