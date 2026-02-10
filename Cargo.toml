@@ -10,7 +10,7 @@ authors = [
     "Langwen Huang <langwen.huang@inf.ethz.ch>",
     "Juniper Tyree <juniper.tyree@helsinki.fi>",
 ]
-repository = "https://github.com/juntyr/qpet-sperr-rs"
+repository = "https://github.com/juntyr/ebcc-rs"
 license = "MPL-2.0"
 rust-version = "1.82"
 
