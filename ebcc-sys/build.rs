@@ -12,10 +12,42 @@ fn main() {
         .map(PathBuf::from)
         .expect("missing OUT_DIR");
 
+    let target = env::var("TARGET").expect("missing TARGET");
+    let no_threads = target == "wasm32-unknown-unknown" || target.starts_with("wasm32-wasi");
+
     let ebcc_src = Path::new("EBCC").join("src");
 
     // Build the static library using CMake from src/ directory
-    let ebcc_out = cmake::Config::new(&ebcc_src).build();
+    let mut config = cmake::Config::new(&ebcc_src);
+    if let Ok(ar) = env::var("AR") {
+        config.define("CMAKE_AR", ar);
+    }
+    if let Ok(ld) = env::var("LD") {
+        config.define("CMAKE_LINKER", ld);
+    }
+    if let Ok(nm) = env::var("NM") {
+        config.define("CMAKE_NM", nm);
+    }
+    if let Ok(objdump) = env::var("OBJDUMP") {
+        config.define("CMAKE_OBJDUMP", objdump);
+    }
+    if let Ok(ranlib) = env::var("RANLIB") {
+        config.define("CMAKE_RANLIB", ranlib);
+    }
+    if let Ok(strip) = env::var("STRIP") {
+        config.define("CMAKE_STRIP", strip);
+    }
+    // < openjp2 config
+    if no_threads {
+        config.define("OPJ_USE_THREAD", "OFF");
+    }
+    // > openjp2 config
+    // < zstd config
+    if no_threads {
+        config.define("ZSTD_MULTITHREAD_SUPPORT", "OFF");
+    }
+    // > zstd config
+    let ebcc_out = config.build();
 
     // Tell cargo to look for libraries in the CMake build directory
     println!(
