@@ -1,6 +1,6 @@
 [package]
 name = "ebcc-sys"
-version = "0.1.0"
+version = "0.1.1"
 edition = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }
@@ -16,8 +16,29 @@ links = "ebcc"
 
 exclude = [
     "/EBCC/.github", "/EBCC/data", "/EBCC/ebcc", "/EBCC/examples",
-    "/EBCC/tests", "/EBCC/pyproject.toml", "/EBCC/pytest.ini",
-    "/EBCC/setup.py",
+    "/EBCC/src/openjpeg/.github", "/EBCC/src/openjpeg/doc",
+    "/EBCC/src/openjpeg/scipts", "/EBCC/src/openjpeg/src/bin",
+    "/EBCC/src/openjpeg/src/lib/openjpip",
+    "/EBCC/src/openjpeg/src/CMakeLists.txt", "/EBCC/src/openjpeg/tests",
+    "/EBCC/src/openjpeg/thirdparty", "/EBCC/src/openjpeg/tools",
+    "/EBCC/src/openjpeg/.gitignore", "/EBCC/src/openjpeg/.travis.yml",
+    "/EBCC/src/openjpeg/appveyor.yml", "/EBCC/src/openjpeg/CHANGELOG.md",
+    "/EBCC/src/openjpeg/CTestConfig.cmake", "/EBCC/src/openjpeg/HOWTO-RELEASE",
+    "/EBCC/src/openjpeg/INSTALL.md", "/EBCC/src/openjpeg/NEWS.md",
+    "/EBCC/src/zstd/.circleci", "/EBCC/src/zstd/.github",
+    "/EBCC/src/zstd/build/meson", "/EBCC/src/zstd/build/single_file_libs",
+    "/EBCC/src/zstd/build/VS2008", "/EBCC/src/zstd/build/VS2010",
+    "/EBCC/src/zstd/build/VS_scripts", "/EBCC/src/zstd/build/.gitignore",
+    "/EBCC/src/zstd/contrib", "/EBCC/src/zstd/doc", "/EBCC/src/zstd/examples",
+    "/EBCC/src/zstd/programs", "/EBCC/src/zstd/tests",
+    "/EBCC/src/zstd/zlibWrapper", "/EBCC/src/zstd/.buckconfig",
+    "/EBCC/src/zstd/.buckversion", "/EBCC/src/zstd/.cirrus.yml",
+    "/EBCC/src/zstd/.gitattributes", "/EBCC/src/zstd/.gitignore",
+    "/EBCC/src/zstd/CHANGELOG", "/EBCC/src/zstd/CODE_OF_CONDUCT.md",
+    "/EBCC/src/zstd/CONTRIBUTING.md", "/EBCC/src/zstd/Makefile",
+    "/EBCC/src/zstd/Package.swift", "/EBCC/src/zstd/TESTING.md",
+    "/EBCC/tests", "/EBCC/.gitignore", "/EBCC/pyproject.toml",
+    "/EBCC/pytest.ini", "/EBCC/setup.py", "/EBCC/TODO_c.md",
 ]
 
 [build-dependencies]
