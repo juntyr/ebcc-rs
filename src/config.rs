@@ -46,12 +46,14 @@ impl Default for EBCCConfig {
     }
 }
 
+const DEFAULT_BASE_CR: f32 = 100.0;
+
 impl EBCCConfig {
     /// Create a new EBCC configuration with default values.
     #[must_use]
     pub const fn new() -> Self {
         Self {
-            base_cr: 10.0,
+            base_cr: DEFAULT_BASE_CR,
             residual_compression_type: EBCCResidualType::Jpeg2000Only,
         }
     }
@@ -67,20 +69,27 @@ impl EBCCConfig {
 
     /// Create a configuration for maximum error bounded compression.
     #[must_use]
-    pub const fn max_absolute_error_bounded(base_cr: f32, error: f32) -> Self {
+    pub const fn max_absolute_error_bounded(error: f32) -> Self {
         Self {
-            base_cr,
+            base_cr: DEFAULT_BASE_CR,
             residual_compression_type: EBCCResidualType::AbsoluteError(error),
         }
     }
 
     /// Create a configuration for relative error bounded compression.
     #[must_use]
-    pub const fn relative_error_bounded(base_cr: f32, error: f32) -> Self {
+    pub const fn relative_error_bounded(error: f32) -> Self {
         Self {
-            base_cr,
+            base_cr: DEFAULT_BASE_CR,
             residual_compression_type: EBCCResidualType::RelativeError(error),
         }
+    }
+
+    /// Change the JPEG2000 layer base compression ratio.
+    #[must_use]
+    pub const fn with_base_cr(mut self, base_cr: f32) -> Self {
+        self.base_cr = base_cr;
+        self
     }
 
     /// Validate the configuration parameters.

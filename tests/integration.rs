@@ -68,7 +68,7 @@ fn test_max_error_bounded_compression() -> EBCCResult<()> {
         x
     });
     let config_error = 0.1;
-    let config = EBCCConfig::max_absolute_error_bounded(15.0, config_error);
+    let config = EBCCConfig::max_absolute_error_bounded(config_error).with_base_cr(15.0);
 
     let compressed = ebcc_encode(data.view(), &config)?;
     let mut decompressed = Array::zeros(data.dim());
@@ -99,7 +99,7 @@ fn test_relative_error_bounded_compression() -> EBCCResult<()> {
         x
     });
     let config_error = 0.001;
-    let config = EBCCConfig::relative_error_bounded(15.0, config_error);
+    let config = EBCCConfig::relative_error_bounded(config_error).with_base_cr(15.0);
 
     let compressed = ebcc_encode(data.view(), &config)?;
     let mut decompressed = Array::zeros(data.dim());
@@ -178,7 +178,7 @@ fn test_large_array() -> EBCCResult<()> {
     });
 
     let config_error = 0.1;
-    let config = EBCCConfig::max_absolute_error_bounded(20.0, config_error);
+    let config = EBCCConfig::max_absolute_error_bounded(config_error).with_base_cr(20.0);
 
     let compressed = ebcc_encode(data.view(), &config)?;
     let mut decompressed = Array::zeros(data.dim());
@@ -222,7 +222,7 @@ fn test_error_bounds() -> EBCCResult<()> {
     let error_bounds = [0.01, 0.1, 1.0, 5.0];
 
     for error_bound in error_bounds {
-        let config = EBCCConfig::max_absolute_error_bounded(15.0, error_bound);
+        let config = EBCCConfig::max_absolute_error_bounded(error_bound).with_base_cr(15.0);
 
         let compressed = ebcc_encode(data.view(), &config)?;
         let mut decompressed = Array::zeros(data.dim());
@@ -280,7 +280,7 @@ fn test_config_validation() {
     invalid_config.base_cr = -1.0; // Negative compression ratio
     assert!(invalid_config.validate().is_err());
 
-    invalid_config = EBCCConfig::max_absolute_error_bounded(10.0, -0.1); // Negative error
+    invalid_config = EBCCConfig::max_absolute_error_bounded(-0.1); // Negative error
     assert!(invalid_config.validate().is_err());
 
     invalid_config = EBCCConfig::new(); // Zero dimension

@@ -42,7 +42,7 @@ use crate::error::{EBCCError, EBCCResult};
 /// # fn main() -> ebcc::EBCCResult<()> {
 /// // 2D ERA5-like data: 721x1440
 /// let data = Array::from_shape_vec((1, 721, 1440), vec![1.0f32; 721 * 1440]).unwrap();
-/// let config = EBCCConfig::max_absolute_error_bounded(30.0, 0.01);
+/// let config = EBCCConfig::max_absolute_error_bounded(0.01);
 ///
 /// let compressed = ebcc_encode(data.view(), &config)?;
 /// println!(
