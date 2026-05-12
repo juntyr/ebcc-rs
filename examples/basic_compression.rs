@@ -48,15 +48,15 @@ fn main() -> EBCCResult<()> {
         ("JPEG2000 only (CR=30)", EBCCConfig::jpeg2000_only(30.0)),
         (
             "Max error bound (0.1K)",
-            EBCCConfig::max_absolute_error_bounded(20.0, 0.1),
+            EBCCConfig::max_absolute_error_bounded(0.1).with_base_cr(20.0),
         ),
         (
             "Max error bound (0.01K)",
-            EBCCConfig::max_absolute_error_bounded(20.0, 0.01),
+            EBCCConfig::max_absolute_error_bounded(0.01).with_base_cr(20.0),
         ),
         (
             "Relative error (0.1%)",
-            EBCCConfig::relative_error_bounded(20.0, 0.001),
+            EBCCConfig::relative_error_bounded(0.001).with_base_cr(20.0),
         ),
     ];
 
