@@ -72,7 +72,11 @@ fn main() {
         .allowlist_type("residual_t")
         .allowlist_function("ebcc_encode")
         .allowlist_function("ebcc_decode")
+        .allowlist_function("ebcc_encode_chunking")
+        .allowlist_function("ebcc_encode_chunking_compat")
+        .allowlist_function("ebcc_decode_chunking")
         .allowlist_function("free_buffer")
+        .allowlist_var("EBCC_MAX_INTERNAL_IMAGE_DIM")
         // Use constified enum module for better enum handling
         .constified_enum_module("residual_t")
         // Generate comments from C headers
