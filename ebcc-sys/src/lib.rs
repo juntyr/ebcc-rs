@@ -21,7 +21,38 @@
 //! [EBCC]: https://github.com/spcl/EBCC
 
 #![allow(missing_docs)] // bindgen
-#![allow(unsafe_code)] // sys-crate
-#![allow(clippy::indexing_slicing)] // bindgen tests
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+use std::ffi::c_uint;
+
+#[allow(unsafe_code)] // sys-crate
+#[allow(clippy::indexing_slicing)] // bindgen tests
+mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+
+pub use bindings::{
+    codec_config_t, ebcc_decode, ebcc_decode_chunking, ebcc_encode, ebcc_encode_chunking,
+    ebcc_encode_chunking_compat, free_buffer, residual_t,
+};
+
+#[expect(clippy::manual_assert)]
+pub const NDIMS: usize = const {
+    let _: c_uint = bindings::NDIMS;
+
+    if size_of::<c_uint>() > size_of::<usize>() {
+        panic!("NDIMS might not fit into usize");
+    }
+
+    bindings::NDIMS as usize
+};
+
+#[expect(clippy::manual_assert)]
+pub const MAX_INTERNAL_IMAGE_DIM: usize = const {
+    let _: c_uint = bindings::EBCC_MAX_INTERNAL_IMAGE_DIM;
+
+    if size_of::<c_uint>() > size_of::<usize>() {
+        panic!("EBCC_MAX_INTERNAL_IMAGE_DIM might not fit into usize");
+    }
+
+    bindings::EBCC_MAX_INTERNAL_IMAGE_DIM as usize
+};
