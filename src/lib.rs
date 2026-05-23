@@ -26,7 +26,7 @@ mod error;
 
 pub use codec::{
     ebcc_decode_chunking_into, ebcc_decode_into, ebcc_encode, ebcc_encode_chunking,
-    ebcc_encode_chunking_compat,
+    ebcc_encode_chunking_compat, EbccDim, EBCC_NDIMS,
 };
 pub use config::{EBCCConfig, EBCCResidualType};
 pub use error::{EBCCError, EBCCResult};

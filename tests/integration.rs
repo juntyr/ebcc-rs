@@ -2,9 +2,9 @@
 
 use ebcc::{
     ebcc_decode_chunking_into, ebcc_decode_into, ebcc_encode, ebcc_encode_chunking,
-    ebcc_encode_chunking_compat, EBCCConfig, EBCCError, EBCCResult,
+    ebcc_encode_chunking_compat, EBCCConfig, EBCCError, EBCCResult, EbccDim, EBCC_NDIMS,
 };
-use ndarray::{Array, Array3};
+use ndarray::Array;
 use std::sync::Mutex;
 
 use ::{ebcc_sys as _, thiserror as _};
@@ -181,12 +181,13 @@ fn test_chunking_compression_roundtrip() -> EBCCResult<()> {
 }
 
 const LARGE_CHUNKED_SHAPE: (usize, usize, usize) = (5, 130, 150);
-const VALID_NON_DIVISIBLE_CHUNK_DIMS: [usize; 3] = [3, 32, 41];
-const REQUESTED_INVALID_CHUNK_DIMS: [[usize; 3]; 3] = [[1, 31, 41], [3, 31, 41], [1, 140, 31]];
+const VALID_NON_DIVISIBLE_CHUNK_DIMS: [usize; EBCC_NDIMS] = [3, 32, 41];
+const REQUESTED_INVALID_CHUNK_DIMS: [[usize; EBCC_NDIMS]; 3] =
+    [[1, 31, 41], [3, 31, 41], [1, 140, 31]];
 static CHUNKING_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[expect(clippy::cast_precision_loss)]
-fn large_chunking_data() -> Array3<f32> {
+fn large_chunking_data() -> Array<f32, EbccDim> {
     Array::from_shape_fn(LARGE_CHUNKED_SHAPE, |(frame, y, x)| {
         let frame_term = frame as f32 * 0.75;
         let y_term = (y as f32 / 13.0).sin() * 10.0;
@@ -196,12 +197,12 @@ fn large_chunking_data() -> Array3<f32> {
     })
 }
 
-fn data_range(data: &Array3<f32>) -> f32 {
+fn data_range(data: &Array<f32, EbccDim>) -> f32 {
     data.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b))
         - data.iter().fold(f32::INFINITY, |a, &b| a.min(b))
 }
 
-fn max_abs_error(data: &Array3<f32>, decompressed: &Array3<f32>) -> f32 {
+fn max_abs_error(data: &Array<f32, EbccDim>, decompressed: &Array<f32, EbccDim>) -> f32 {
     data.iter()
         .zip(decompressed.iter())
         .map(|(&orig, &decomp)| (orig - decomp).abs())
@@ -209,10 +210,10 @@ fn max_abs_error(data: &Array3<f32>, decompressed: &Array3<f32>) -> f32 {
 }
 
 fn chunking_roundtrip(
-    data: &Array3<f32>,
+    data: &Array<f32, EbccDim>,
     config: &EBCCConfig,
-    chunk_dims: [usize; 3],
-) -> EBCCResult<Array3<f32>> {
+    chunk_dims: [usize; EBCC_NDIMS],
+) -> EBCCResult<Array<f32, EbccDim>> {
     let _guard = CHUNKING_TEST_LOCK
         .lock()
         .map_err(|_| EBCCError::CompressionError(String::from("Chunking test lock poisoned")))?;
@@ -224,10 +225,10 @@ fn chunking_roundtrip(
 }
 
 fn chunking_compat_roundtrip(
-    data: &Array3<f32>,
+    data: &Array<f32, EbccDim>,
     config: &EBCCConfig,
-    chunk_dims: [usize; 3],
-) -> EBCCResult<Array3<f32>> {
+    chunk_dims: [usize; EBCC_NDIMS],
+) -> EBCCResult<Array<f32, EbccDim>> {
     let _guard = CHUNKING_TEST_LOCK
         .lock()
         .map_err(|_| EBCCError::CompressionError(String::from("Chunking test lock poisoned")))?;
@@ -298,7 +299,7 @@ fn test_chunking_compat_default_chunks_range_relative_error_bound() -> EBCCResul
     let config_error = 0.01;
     let config = EBCCConfig::relative_error_bounded(config_error).with_base_cr(20.0);
 
-    let decompressed = chunking_compat_roundtrip(&data, &config, [0; 3])?;
+    let decompressed = chunking_compat_roundtrip(&data, &config, [0; _])?;
     let max_error = max_abs_error(&data, &decompressed);
     let range_error_bound = data_range(&data) * config_error;
     let tolerance = range_error_bound * 0.02;

@@ -36,7 +36,7 @@ pub use bindings::{
 };
 
 #[expect(clippy::manual_assert)]
-pub const NDIMS: usize = const {
+pub const EBCC_NDIMS: usize = const {
     let _: c_uint = bindings::NDIMS;
 
     if size_of::<c_uint>() > size_of::<usize>() {
@@ -47,7 +47,7 @@ pub const NDIMS: usize = const {
 };
 
 #[expect(clippy::manual_assert)]
-pub const MAX_INTERNAL_IMAGE_DIM: usize = const {
+pub const EBCC_MAX_INTERNAL_IMAGE_DIM: usize = const {
     let _: c_uint = bindings::EBCC_MAX_INTERNAL_IMAGE_DIM;
 
     if size_of::<c_uint>() > size_of::<usize>() {
