@@ -199,14 +199,24 @@ pub fn ebcc_decode_into(
 
     let Ok(decompressed_view) = ArrayView3::from_shape(decompressed_data.dim(), decompressed_slice)
     else {
+        #[expect(unsafe_code)]
+        unsafe {
+            ebcc_sys::free_buffer(out_buffer.cast::<core::ffi::c_void>());
+        }
+
         return Err(EBCCError::InvalidInput(format!(
             "Decompressed data should be of shape {:?} but decompressed to {} elements",
             decompressed_data.shape(),
-            decompressed_slice.len()
+            decompressed_size
         )));
     };
 
     decompressed_data.assign(&decompressed_view);
+
+    #[expect(unsafe_code)]
+    unsafe {
+        ebcc_sys::free_buffer(out_buffer.cast::<core::ffi::c_void>());
+    }
 
     Ok(())
 }
