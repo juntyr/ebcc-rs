@@ -180,10 +180,10 @@ fn test_chunking_compression_roundtrip() -> EBCCResult<()> {
     Ok(())
 }
 
-const LARGE_CHUNKED_SHAPE: (usize, usize, usize) = (5, 130, 150);
+const LARGE_CHUNKED_SHAPE: [usize; EBCC_NDIMS] = [5, 130, 150];
 const VALID_NON_DIVISIBLE_CHUNK_DIMS: [usize; EBCC_NDIMS] = [3, 32, 41];
-const REQUESTED_INVALID_CHUNK_DIMS: [[usize; EBCC_NDIMS]; 3] =
-    [[1, 31, 41], [3, 31, 41], [1, 140, 31]];
+const REQUESTED_INVALID_CHUNK_DIMS: &[[usize; EBCC_NDIMS]] =
+    &[[1, 31, 41], [3, 31, 41], [1, 140, 31]];
 static CHUNKING_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[expect(clippy::cast_precision_loss)]
@@ -299,7 +299,7 @@ fn test_chunking_compat_default_chunks_range_relative_error_bound() -> EBCCResul
     let config_error = 0.01;
     let config = EBCCConfig::relative_error_bounded(config_error).with_base_cr(20.0);
 
-    let decompressed = chunking_compat_roundtrip(&data, &config, [0; _])?;
+    let decompressed = chunking_compat_roundtrip(&data, &config, [0; EBCC_NDIMS])?;
     let max_error = max_abs_error(&data, &decompressed);
     let range_error_bound = data_range(&data) * config_error;
     let tolerance = range_error_bound * 0.02;
@@ -319,7 +319,7 @@ fn test_chunking_rejects_requested_chunks_below_tile_limit() {
     let config = EBCCConfig::jpeg2000_only(10.0);
 
     for chunk_dims in REQUESTED_INVALID_CHUNK_DIMS {
-        let result = ebcc_encode_chunking(data.view(), &config, chunk_dims);
+        let result = ebcc_encode_chunking(data.view(), &config, *chunk_dims);
         assert!(
             result.is_err(),
             "Chunk dimensions {chunk_dims:?} should be rejected",

@@ -68,7 +68,7 @@ pub fn ebcc_encode(data: ArrayView<f32, EbccDim>, config: &EBCCConfig) -> EBCCRe
     validate_only_finite_data(data)?;
 
     // Convert to FFI types
-    let mut ffi_config = ffi_config(data.dim().into(), config, [0; _]);
+    let mut ffi_config = ffi_config(data.dim().into(), config, [0; EBCC_NDIMS]);
     let mut data_copy: Vec<f32> = data.iter().copied().collect(); // C function may modify the input
 
     // Call the C function
@@ -463,7 +463,7 @@ fn validate_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
 }
 
 fn validate_compat_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
-    if chunk_dims == [0; _] {
+    if chunk_dims == [0; EBCC_NDIMS] {
         return Ok(());
     }
 
@@ -545,7 +545,7 @@ fn read_dims_from_chunking_header(
 }
 
 fn read_u32_le(reader: &mut &[u8]) -> EBCCResult<u32> {
-    let mut array = [0; _];
+    let mut array = [0; std::mem::size_of::<u32>()];
     let Ok(()) = reader.read_exact(&mut array) else {
         return Err(EBCCError::InvalidInput(String::from(
             "Chunked EBCC header is truncated",
@@ -555,7 +555,7 @@ fn read_u32_le(reader: &mut &[u8]) -> EBCCResult<u32> {
 }
 
 fn read_u64_le(reader: &mut &[u8]) -> EBCCResult<u64> {
-    let mut array = [0; _];
+    let mut array = [0; std::mem::size_of::<u64>()];
     let Ok(()) = reader.read_exact(&mut array) else {
         return Err(EBCCError::InvalidInput(String::from(
             "Chunked EBCC header is truncated",
