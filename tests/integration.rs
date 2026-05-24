@@ -5,9 +5,8 @@ use ebcc::{
     ebcc_encode_chunking_compat, EBCCConfig, EBCCError, EBCCResult, EbccDim, EBCC_NDIMS,
 };
 use ndarray::Array;
-use std::sync::Mutex;
 
-use ::{ebcc_sys as _, thiserror as _};
+use {ebcc_sys as _, thiserror as _};
 
 #[test]
 fn test_basic_compression_roundtrip() -> EBCCResult<()> {
@@ -184,7 +183,6 @@ const LARGE_CHUNKED_SHAPE: [usize; EBCC_NDIMS] = [5, 130, 150];
 const VALID_NON_DIVISIBLE_CHUNK_DIMS: [usize; EBCC_NDIMS] = [3, 32, 41];
 const REQUESTED_INVALID_CHUNK_DIMS: &[[usize; EBCC_NDIMS]] =
     &[[1, 31, 41], [3, 31, 41], [1, 140, 31]];
-static CHUNKING_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 #[expect(clippy::cast_precision_loss)]
 fn large_chunking_data() -> Array<f32, EbccDim> {
@@ -214,9 +212,6 @@ fn chunking_roundtrip(
     config: &EBCCConfig,
     chunk_dims: [usize; EBCC_NDIMS],
 ) -> EBCCResult<Array<f32, EbccDim>> {
-    let _guard = CHUNKING_TEST_LOCK
-        .lock()
-        .map_err(|_| EBCCError::CompressionError(String::from("Chunking test lock poisoned")))?;
     let compressed = ebcc_encode_chunking(data.view(), config, chunk_dims)?;
     let mut decompressed = Array::zeros(data.dim());
     ebcc_decode_chunking_into(&compressed, decompressed.view_mut())?;
@@ -227,11 +222,8 @@ fn chunking_roundtrip(
 fn chunking_compat_roundtrip(
     data: &Array<f32, EbccDim>,
     config: &EBCCConfig,
-    chunk_dims: [usize; EBCC_NDIMS],
+    chunk_dims: Option<[usize; EBCC_NDIMS]>,
 ) -> EBCCResult<Array<f32, EbccDim>> {
-    let _guard = CHUNKING_TEST_LOCK
-        .lock()
-        .map_err(|_| EBCCError::CompressionError(String::from("Chunking test lock poisoned")))?;
     let compressed = ebcc_encode_chunking_compat(data.view(), config, chunk_dims)?;
     let mut decompressed = Array::zeros(data.dim());
     ebcc_decode_chunking_into(&compressed, decompressed.view_mut())?;
@@ -299,7 +291,7 @@ fn test_chunking_compat_default_chunks_range_relative_error_bound() -> EBCCResul
     let config_error = 0.01;
     let config = EBCCConfig::relative_error_bounded(config_error).with_base_cr(20.0);
 
-    let decompressed = chunking_compat_roundtrip(&data, &config, [0; EBCC_NDIMS])?;
+    let decompressed = chunking_compat_roundtrip(&data, &config, None)?;
     let max_error = max_abs_error(&data, &decompressed);
     let range_error_bound = data_range(&data) * config_error;
     let tolerance = range_error_bound * 0.02;
@@ -329,10 +321,6 @@ fn test_chunking_rejects_requested_chunks_below_tile_limit() {
 
 #[test]
 fn test_decode_chunking_rejects_same_len_wrong_shape() -> EBCCResult<()> {
-    let _guard = CHUNKING_TEST_LOCK
-        .lock()
-        .map_err(|_| EBCCError::CompressionError(String::from("Chunking test lock poisoned")))?;
-
     #[expect(clippy::cast_precision_loss, clippy::suboptimal_flops)]
     let data = Array::from_shape_fn((2, 32, 32), |(frame, y, x)| {
         frame as f32 * 1024.0 + y as f32 * 32.0 + x as f32

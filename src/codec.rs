@@ -107,6 +107,8 @@ pub fn ebcc_encode(data: ArrayView<f32, EbccDim>, config: &EBCCConfig) -> EBCCRe
 /// Chunks may extend beyond the input dimensions.
 /// EBCC pads edge chunks by repeating boundary values.
 ///
+/// Range-relative error bounds are calculated independently for each chunk.
+///
 /// # Errors
 ///
 /// - [`EBCCError::InvalidInput`] if the `data` has any zero-size dimension
@@ -161,8 +163,8 @@ pub fn ebcc_encode_chunking(
 
 /// Encode a 3D data array using EBCC chunked compression in compatibility mode.
 ///
-/// Passing all-zero `chunk_dims` lets EBCC automatically choose the chunk
-/// dimensions. Passing any other chunk shape uses the same validation rules as
+/// Passing `None` for `chunk_dims` lets EBCC automatically choose the chunk
+/// dimensions. Passing `Some(chunk_dims)` uses the same validation rules as
 /// [`ebcc_encode_chunking`].
 ///
 /// In EBCC compatibility mode, range-relative error bounds are converted to
@@ -171,10 +173,11 @@ pub fn ebcc_encode_chunking(
 /// # Errors
 ///
 /// - [`EBCCError::InvalidInput`] if the `data` has any zero-size dimension
-/// - [`EBCCError::InvalidInput`] if `chunk_dims` is partially zero
 /// - [`EBCCError::InvalidInput`] if explicit `chunk_dims` has tile dimensions
 ///   that are too small or forms EBCC internal image dimensions outside the
 ///   supported range
+/// - [`EBCCError::InvalidInput`] if explicit `chunk_dims` contains a zero
+///   dimension
 /// - [`EBCCError::InvalidConfig`] if [`config.validate`][`EBCCConfig.validate`]
 ///   fails
 /// - [`EBCCError::InvalidInput`] if the `data` contains any non-finite
@@ -183,10 +186,10 @@ pub fn ebcc_encode_chunking(
 pub fn ebcc_encode_chunking_compat(
     data: ArrayView<f32, EbccDim>,
     config: &EBCCConfig,
-    chunk_dims: [usize; EBCC_NDIMS],
+    chunk_dims: Option<[usize; EBCC_NDIMS]>,
 ) -> EBCCResult<Vec<u8>> {
     validate_data_shape(data)?;
-    validate_compat_chunk_dims(chunk_dims)?;
+    let chunk_dims = compat_chunk_dims(chunk_dims)?;
     config.validate()?;
     validate_only_finite_data(data)?;
 
@@ -462,12 +465,13 @@ fn validate_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
     Ok(())
 }
 
-fn validate_compat_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
-    if chunk_dims == [0; EBCC_NDIMS] {
-        return Ok(());
+fn compat_chunk_dims(chunk_dims: Option<[usize; EBCC_NDIMS]>) -> EBCCResult<[usize; EBCC_NDIMS]> {
+    if let Some(chunk_dims) = chunk_dims {
+        validate_chunk_dims(chunk_dims)?;
+        Ok(chunk_dims)
+    } else {
+        Ok([0; EBCC_NDIMS])
     }
-
-    validate_chunk_dims(chunk_dims)
 }
 
 fn validate_only_finite_data(data: ArrayView<f32, EbccDim>) -> EBCCResult<()> {
