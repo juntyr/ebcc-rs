@@ -76,7 +76,10 @@ fn main() {
         .allowlist_function("ebcc_encode_chunking_compat")
         .allowlist_function("ebcc_decode_chunking")
         .allowlist_function("free_buffer")
+        .allowlist_var("EBCC_CHUNKING_HEADER_MAGIC")
+        .allowlist_var("EBCC_CHUNKING_HEADER_VERSION")
         .allowlist_var("EBCC_MAX_INTERNAL_IMAGE_DIM")
+        .allowlist_var("EBCC_MIN_INTERNAL_IMAGE_DIM")
         .allowlist_var("NDIMS")
         // Use constified enum module for better enum handling
         .constified_enum_module("residual_t")

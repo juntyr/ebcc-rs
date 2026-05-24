@@ -6,7 +6,7 @@ use ebcc::{
 };
 use ndarray::Array;
 
-use {ebcc_sys as _, thiserror as _};
+use ::{ebcc_sys as _, thiserror as _};
 
 #[test]
 fn test_basic_compression_roundtrip() -> EBCCResult<()> {

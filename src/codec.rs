@@ -2,8 +2,11 @@
 
 use std::{io::Read, ptr, slice};
 
-use ebcc_sys::EBCC_MAX_INTERNAL_IMAGE_DIM;
 pub use ebcc_sys::EBCC_NDIMS;
+use ebcc_sys::{
+    EBCC_CHUNKING_HEADER_MAGIC, EBCC_CHUNKING_HEADER_VERSION, EBCC_MAX_INTERNAL_IMAGE_DIM,
+    EBCC_MIN_INTERNAL_IMAGE_DIM,
+};
 use ndarray::{ArrayView, ArrayViewMut, Dim, Ix};
 
 use crate::config::EBCCConfig;
@@ -12,10 +15,6 @@ use crate::error::{EBCCError, EBCCResult};
 /// EBCC data dimension.
 pub type EbccDim = Dim<[Ix; EBCC_NDIMS]>;
 
-const MIN_IMAGE_HEIGHT: usize = 32;
-const MIN_IMAGE_WIDTH: usize = 32;
-const CHUNKING_HEADER_MAGIC: &[u8; 4] = b"EBCK";
-const CHUNKING_HEADER_VERSION: u32 = 1;
 const CHUNKING_HEADER_LEN: usize = 80;
 
 /// Encode a 3D data array using EBCC compression.
@@ -413,9 +412,9 @@ fn validate_regular_ebcc_shape(data: ArrayView<f32, EbccDim>) -> EBCCResult<()> 
         return Err(EBCCError::InvalidInput(String::from("Dimension overflow")));
     };
 
-    if height < MIN_IMAGE_HEIGHT
-        || !(MIN_IMAGE_HEIGHT..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&image_height)
-        || !(MIN_IMAGE_WIDTH..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&width)
+    if height < EBCC_MIN_INTERNAL_IMAGE_DIM
+        || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&image_height)
+        || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&width)
     {
         return Err(EBCCError::InvalidInput(format!(
             "EBCC requires tile dimensions of at least 32 and internal image dimensions at most {EBCC_MAX_INTERNAL_IMAGE_DIM}, got shape {depth}x{height}x{width}",
@@ -438,9 +437,9 @@ fn validate_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
             "Chunk dimension overflow",
         )));
     };
-    if chunk_height < MIN_IMAGE_HEIGHT
-        || !(MIN_IMAGE_HEIGHT..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&image_height)
-        || !(MIN_IMAGE_WIDTH..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&chunk_width)
+    if chunk_height < EBCC_MIN_INTERNAL_IMAGE_DIM
+        || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&image_height)
+        || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&chunk_width)
     {
         return Err(EBCCError::InvalidInput(format!(
             "EBCC requires chunk tile dimensions of at least 32 and internal image dimensions at most {EBCC_MAX_INTERNAL_IMAGE_DIM}, got {chunk_depth}x{chunk_height}x{chunk_width}",
@@ -508,14 +507,14 @@ fn read_dims_from_chunking_header(
         return Ok(None);
     }
 
-    let Some(mut compressed_data) = compressed_data.strip_prefix(CHUNKING_HEADER_MAGIC) else {
+    let Some(mut compressed_data) = compressed_data.strip_prefix(EBCC_CHUNKING_HEADER_MAGIC) else {
         return Ok(None);
     };
 
     let reader = &mut compressed_data;
 
     let version = read_u32_le(reader)?;
-    if version != CHUNKING_HEADER_VERSION {
+    if version != EBCC_CHUNKING_HEADER_VERSION {
         return Err(EBCCError::DecompressionError(format!(
             "Unsupported EBCC chunking header version: {version}",
         )));
