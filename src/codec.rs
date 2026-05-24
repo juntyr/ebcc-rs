@@ -417,7 +417,7 @@ fn validate_regular_ebcc_shape(data: ArrayView<f32, EbccDim>) -> EBCCResult<()> 
         || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&width)
     {
         return Err(EBCCError::InvalidInput(format!(
-            "EBCC requires tile dimensions of at least 32 and internal image dimensions at most {EBCC_MAX_INTERNAL_IMAGE_DIM}, got shape {depth}x{height}x{width}",
+            "EBCC requires tile dimensions of at least {EBCC_MIN_INTERNAL_IMAGE_DIM} and internal image dimensions at most {EBCC_MAX_INTERNAL_IMAGE_DIM}, got shape {depth}x{height}x{width}",
         )));
     }
 
@@ -442,7 +442,7 @@ fn validate_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
         || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&chunk_width)
     {
         return Err(EBCCError::InvalidInput(format!(
-            "EBCC requires chunk tile dimensions of at least 32 and internal image dimensions at most {EBCC_MAX_INTERNAL_IMAGE_DIM}, got {chunk_depth}x{chunk_height}x{chunk_width}",
+            "EBCC requires chunk tile dimensions of at least {EBCC_MIN_INTERNAL_IMAGE_DIM} and internal image dimensions at most {EBCC_MAX_INTERNAL_IMAGE_DIM}, got {chunk_depth}x{chunk_height}x{chunk_width}",
         )));
     }
 
@@ -577,7 +577,11 @@ mod tests {
     #[test]
     fn test_encode_decode_roundtrip() -> EBCCResult<()> {
         // Create test data for 32x32 minimum size requirement
-        let data = Array::from_shape_vec((1, 32, 32), vec![1.0f32; 32 * 32]).unwrap();
+        let data = Array::from_shape_vec(
+            (1, EBCC_MIN_INTERNAL_IMAGE_DIM, EBCC_MIN_INTERNAL_IMAGE_DIM),
+            vec![1.0f32; EBCC_MIN_INTERNAL_IMAGE_DIM * EBCC_MIN_INTERNAL_IMAGE_DIM],
+        )
+        .unwrap();
 
         let config = EBCCConfig::new();
 
@@ -592,7 +596,11 @@ mod tests {
 
     #[test]
     fn test_invalid_config() {
-        let data = Array::from_shape_vec((1, 32, 32), vec![1.0f32; 32 * 32]).unwrap();
+        let data = Array::from_shape_vec(
+            (1, EBCC_MIN_INTERNAL_IMAGE_DIM, EBCC_MIN_INTERNAL_IMAGE_DIM),
+            vec![1.0f32; EBCC_MIN_INTERNAL_IMAGE_DIM * EBCC_MIN_INTERNAL_IMAGE_DIM],
+        )
+        .unwrap();
 
         let mut config = EBCCConfig::new();
         config.base_cr = -1.0; // Invalid compression ratio
@@ -603,7 +611,11 @@ mod tests {
 
     #[test]
     fn test_nan_input() {
-        let mut data = Array::from_shape_vec((1, 32, 32), vec![1.0f32; 32 * 32]).unwrap();
+        let mut data = Array::from_shape_vec(
+            (1, EBCC_MIN_INTERNAL_IMAGE_DIM, EBCC_MIN_INTERNAL_IMAGE_DIM),
+            vec![1.0f32; EBCC_MIN_INTERNAL_IMAGE_DIM * EBCC_MIN_INTERNAL_IMAGE_DIM],
+        )
+        .unwrap();
         data[(0, 3, 4)] = f32::NAN; // Insert NaN in the middle
 
         let config = EBCCConfig::new();
@@ -624,7 +636,11 @@ mod tests {
         let data = Array::from_shape_fn((1, 64, 64), |(_frame, y, x)| (y + x) as f32);
         let config = EBCCConfig::new();
 
-        let compressed = ebcc_encode_chunking(data.view(), &config, [1, 32, 32])?;
+        let compressed = ebcc_encode_chunking(
+            data.view(),
+            &config,
+            [1, EBCC_MIN_INTERNAL_IMAGE_DIM, EBCC_MIN_INTERNAL_IMAGE_DIM],
+        )?;
 
         let mut decompressed = Array::zeros(data.dim());
         ebcc_decode_chunking_into(&compressed, decompressed.view_mut())?;
