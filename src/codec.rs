@@ -1,6 +1,6 @@
 //! Safe wrapper functions for EBCC compression and decompression.
 
-use std::{io::Read, ptr, slice};
+use std::{io::Read, num::NonZeroUsize, ptr, slice};
 
 pub use ebcc_sys::EBCC_NDIMS;
 use ebcc_sys::{
@@ -111,7 +111,6 @@ pub fn ebcc_encode(data: ArrayView<f32, EbccDim>, config: &EBCCConfig) -> EBCCRe
 /// # Errors
 ///
 /// - [`EBCCError::InvalidInput`] if the `data` has any zero-size dimension
-/// - [`EBCCError::InvalidInput`] if `chunk_dims` contains a zero dimension
 /// - [`EBCCError::InvalidInput`] if `chunk_dims` has tile dimensions that are
 ///   too small or forms EBCC internal image dimensions outside the supported
 ///   range
@@ -123,10 +122,10 @@ pub fn ebcc_encode(data: ArrayView<f32, EbccDim>, config: &EBCCConfig) -> EBCCRe
 pub fn ebcc_encode_chunking(
     data: ArrayView<f32, EbccDim>,
     config: &EBCCConfig,
-    chunk_dims: [usize; EBCC_NDIMS],
+    chunk_dims: [NonZeroUsize; EBCC_NDIMS],
 ) -> EBCCResult<Vec<u8>> {
     validate_data_shape(data)?;
-    validate_chunk_dims(chunk_dims)?;
+    let chunk_dims = validate_chunk_dims(chunk_dims)?;
     config.validate()?;
     validate_only_finite_data(data)?;
 
@@ -175,8 +174,6 @@ pub fn ebcc_encode_chunking(
 /// - [`EBCCError::InvalidInput`] if explicit `chunk_dims` has tile dimensions
 ///   that are too small or forms EBCC internal image dimensions outside the
 ///   supported range
-/// - [`EBCCError::InvalidInput`] if explicit `chunk_dims` contains a zero
-///   dimension
 /// - [`EBCCError::InvalidConfig`] if [`config.validate`][`EBCCConfig.validate`]
 ///   fails
 /// - [`EBCCError::InvalidInput`] if the `data` contains any non-finite
@@ -185,7 +182,7 @@ pub fn ebcc_encode_chunking(
 pub fn ebcc_encode_chunking_compat(
     data: ArrayView<f32, EbccDim>,
     config: &EBCCConfig,
-    chunk_dims: Option<[usize; EBCC_NDIMS]>,
+    chunk_dims: Option<[NonZeroUsize; EBCC_NDIMS]>,
 ) -> EBCCResult<Vec<u8>> {
     validate_data_shape(data)?;
     let chunk_dims = compat_chunk_dims(chunk_dims)?;
@@ -424,22 +421,17 @@ fn validate_regular_ebcc_shape(data: ArrayView<f32, EbccDim>) -> EBCCResult<()> 
     Ok(())
 }
 
-fn validate_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
-    if chunk_dims.contains(&0) {
-        return Err(EBCCError::InvalidInput(String::from(
-            "All chunk dimensions must be > 0",
-        )));
-    }
-
+fn validate_chunk_dims(chunk_dims: [NonZeroUsize; EBCC_NDIMS]) -> EBCCResult<[usize; EBCC_NDIMS]> {
     let [chunk_depth, chunk_height, chunk_width] = chunk_dims;
     let Some(image_height) = chunk_depth.checked_mul(chunk_height) else {
         return Err(EBCCError::InvalidInput(String::from(
             "Chunk dimension overflow",
         )));
     };
-    if chunk_height < EBCC_MIN_INTERNAL_IMAGE_DIM
-        || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&image_height)
-        || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&chunk_width)
+    if chunk_height.get() < EBCC_MIN_INTERNAL_IMAGE_DIM
+        || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM)
+            .contains(&image_height.get())
+        || !(EBCC_MIN_INTERNAL_IMAGE_DIM..=EBCC_MAX_INTERNAL_IMAGE_DIM).contains(&chunk_width.get())
     {
         return Err(EBCCError::InvalidInput(format!(
             "EBCC requires chunk tile dimensions of at least {EBCC_MIN_INTERNAL_IMAGE_DIM} and internal image dimensions at most {EBCC_MAX_INTERNAL_IMAGE_DIM}, got {chunk_depth}x{chunk_height}x{chunk_width}",
@@ -448,7 +440,7 @@ fn validate_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
 
     let Some(total_elements) = chunk_dims
         .iter()
-        .try_fold(1usize, |acc, &d| acc.checked_mul(d))
+        .try_fold(1usize, |acc, &d| acc.checked_mul(d.get()))
     else {
         return Err(EBCCError::InvalidInput(String::from(
             "Chunk dimension overflow",
@@ -461,13 +453,15 @@ fn validate_chunk_dims(chunk_dims: [usize; EBCC_NDIMS]) -> EBCCResult<()> {
         )));
     }
 
-    Ok(())
+    Ok(chunk_dims.map(NonZeroUsize::get))
 }
 
-fn compat_chunk_dims(chunk_dims: Option<[usize; EBCC_NDIMS]>) -> EBCCResult<[usize; EBCC_NDIMS]> {
+fn compat_chunk_dims(
+    chunk_dims: Option<[NonZeroUsize; EBCC_NDIMS]>,
+) -> EBCCResult<[usize; EBCC_NDIMS]> {
     if let Some(chunk_dims) = chunk_dims {
         validate_chunk_dims(chunk_dims)?;
-        Ok(chunk_dims)
+        Ok(chunk_dims.map(NonZeroUsize::get))
     } else {
         Ok([0; EBCC_NDIMS])
     }
@@ -639,7 +633,12 @@ mod tests {
         let compressed = ebcc_encode_chunking(
             data.view(),
             &config,
-            [1, EBCC_MIN_INTERNAL_IMAGE_DIM, EBCC_MIN_INTERNAL_IMAGE_DIM],
+            #[expect(clippy::unwrap_used)]
+            [
+                NonZeroUsize::new(1).unwrap(),
+                NonZeroUsize::new(EBCC_MIN_INTERNAL_IMAGE_DIM).unwrap(),
+                NonZeroUsize::new(EBCC_MIN_INTERNAL_IMAGE_DIM).unwrap(),
+            ],
         )?;
 
         let mut decompressed = Array::zeros(data.dim());
