@@ -21,7 +21,73 @@
 //! [EBCC]: https://github.com/spcl/EBCC
 
 #![allow(missing_docs)] // bindgen
-#![allow(unsafe_code)] // sys-crate
-#![allow(clippy::indexing_slicing)] // bindgen tests
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+use std::ffi::c_uint;
+
+#[allow(unsafe_code)] // sys-crate
+#[allow(clippy::indexing_slicing)] // bindgen tests
+mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+
+pub use bindings::{
+    codec_config_t, ebcc_decode, ebcc_decode_chunking, ebcc_encode, ebcc_encode_chunking,
+    ebcc_encode_chunking_compat, free_buffer, residual_t,
+};
+
+pub const EBCC_CHUNKING_HEADER_MAGIC: &[u8] = const {
+    let magic: &[u8] = bindings::EBCC_CHUNKING_HEADER_MAGIC;
+
+    let [magic @ .., b'\0'] = magic else {
+        panic!("EBCC_CHUNKING_HEADER_MAGIC is not a null-terminated cstr");
+    };
+
+    magic
+};
+
+#[expect(clippy::manual_assert)]
+pub const EBCC_CHUNKING_HEADER_VERSION: u32 = const {
+    let _: c_uint = bindings::EBCC_CHUNKING_HEADER_VERSION;
+
+    if size_of::<c_uint>() > size_of::<u32>() {
+        panic!("EBCC_CHUNKING_HEADER_VERSION might not fit into u32");
+    }
+
+    #[allow(clippy::unnecessary_cast)]
+    {
+        bindings::EBCC_CHUNKING_HEADER_VERSION as u32
+    }
+};
+
+#[expect(clippy::manual_assert)]
+pub const EBCC_MAX_INTERNAL_IMAGE_DIM: usize = const {
+    let _: c_uint = bindings::EBCC_MAX_INTERNAL_IMAGE_DIM;
+
+    if size_of::<c_uint>() > size_of::<usize>() {
+        panic!("EBCC_MAX_INTERNAL_IMAGE_DIM might not fit into usize");
+    }
+
+    bindings::EBCC_MAX_INTERNAL_IMAGE_DIM as usize
+};
+
+#[expect(clippy::manual_assert)]
+pub const EBCC_MIN_INTERNAL_IMAGE_DIM: usize = const {
+    let _: c_uint = bindings::EBCC_MIN_INTERNAL_IMAGE_DIM;
+
+    if size_of::<c_uint>() > size_of::<usize>() {
+        panic!("EBCC_MIN_INTERNAL_IMAGE_DIM might not fit into usize");
+    }
+
+    bindings::EBCC_MIN_INTERNAL_IMAGE_DIM as usize
+};
+
+#[expect(clippy::manual_assert)]
+pub const EBCC_NDIMS: usize = const {
+    let _: c_uint = bindings::NDIMS;
+
+    if size_of::<c_uint>() > size_of::<usize>() {
+        panic!("NDIMS might not fit into usize");
+    }
+
+    bindings::NDIMS as usize
+};

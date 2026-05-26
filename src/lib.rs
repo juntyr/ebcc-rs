@@ -24,6 +24,9 @@ mod codec;
 mod config;
 mod error;
 
-pub use codec::{ebcc_decode_into, ebcc_encode};
+pub use codec::{
+    ebcc_decode_chunking_into, ebcc_decode_into, ebcc_encode, ebcc_encode_chunking,
+    ebcc_encode_chunking_compat, EBCCChunkShape, EBCCCompatChunkShape, EbccDim, EBCC_NDIMS,
+};
 pub use config::{EBCCConfig, EBCCResidualType};
 pub use error::{EBCCError, EBCCResult};

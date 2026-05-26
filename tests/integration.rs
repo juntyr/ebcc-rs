@@ -1,6 +1,12 @@
 #![expect(missing_docs)]
 
-use ebcc::{ebcc_decode_into, ebcc_encode, EBCCConfig, EBCCResult};
+use std::num::NonZeroUsize;
+
+use ebcc::{
+    ebcc_decode_chunking_into, ebcc_decode_into, ebcc_encode, ebcc_encode_chunking,
+    ebcc_encode_chunking_compat, EBCCChunkShape, EBCCCompatChunkShape, EBCCConfig, EBCCError,
+    EBCCResult, EbccDim, EBCC_NDIMS,
+};
 use ndarray::Array;
 
 use ::{ebcc_sys as _, thiserror as _};
@@ -157,6 +163,193 @@ fn test_constant_field() -> EBCCResult<()> {
         compression_ratio >= 2.0,
         "Constant field should compress to at least 2:1 ratio, got {compression_ratio:.2}:1",
     );
+
+    Ok(())
+}
+
+#[test]
+#[expect(clippy::cast_precision_loss)]
+fn test_chunking_compression_roundtrip() -> EBCCResult<()> {
+    let data = Array::from_shape_fn((1, 64, 64), |(_frame, y, x)| {
+        (y as f32).sin() + (x as f32).cos()
+    });
+    let config = EBCCConfig::jpeg2000_only(10.0);
+
+    let decompressed = chunking_roundtrip(&data, &config, [nz(1), nz(32), nz(32)])?;
+
+    assert_eq!(decompressed.dim(), data.dim());
+
+    Ok(())
+}
+
+#[expect(clippy::panic)]
+const fn nz(n: usize) -> NonZeroUsize {
+    match NonZeroUsize::new(n) {
+        Some(nz) => nz,
+        None => panic!("n is zero"),
+    }
+}
+
+const LARGE_CHUNKED_DATA_SHAPE: [usize; EBCC_NDIMS] = [5, 130, 150];
+const VALID_NON_DIVISIBLE_CHUNK_SHAPES: EBCCChunkShape = [nz(3), nz(32), nz(41)];
+const REQUESTED_INVALID_CHUNK_SHAPES: &[EBCCChunkShape] = &[
+    [nz(1), nz(31), nz(41)],
+    [nz(3), nz(31), nz(41)],
+    [nz(1), nz(140), nz(31)],
+];
+
+#[expect(clippy::cast_precision_loss)]
+fn large_chunking_data() -> Array<f32, EbccDim> {
+    Array::from_shape_fn(LARGE_CHUNKED_DATA_SHAPE, |(frame, y, x)| {
+        let frame_term = frame as f32 * 0.75;
+        let y_term = (y as f32 / 13.0).sin() * 10.0;
+        let x_term = (x as f32 / 17.0).cos() * 7.0;
+        let fine_term = ((y * x + frame) % 19) as f32 * 0.03;
+        280.0 + frame_term + y_term + x_term + fine_term
+    })
+}
+
+fn data_range(data: &Array<f32, EbccDim>) -> f32 {
+    data.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b))
+        - data.iter().fold(f32::INFINITY, |a, &b| a.min(b))
+}
+
+fn max_abs_error(data: &Array<f32, EbccDim>, decompressed: &Array<f32, EbccDim>) -> f32 {
+    data.iter()
+        .zip(decompressed.iter())
+        .map(|(&orig, &decomp)| (orig - decomp).abs())
+        .fold(0.0f32, f32::max)
+}
+
+fn chunking_roundtrip(
+    data: &Array<f32, EbccDim>,
+    config: &EBCCConfig,
+    chunk_shape: EBCCChunkShape,
+) -> EBCCResult<Array<f32, EbccDim>> {
+    let compressed = ebcc_encode_chunking(data.view(), config, chunk_shape)?;
+    let mut decompressed = Array::zeros(data.dim());
+    ebcc_decode_chunking_into(&compressed, decompressed.view_mut())?;
+
+    Ok(decompressed)
+}
+
+fn chunking_compat_roundtrip(
+    data: &Array<f32, EbccDim>,
+    config: &EBCCConfig,
+    chunk_shape: EBCCCompatChunkShape,
+) -> EBCCResult<Array<f32, EbccDim>> {
+    let compressed = ebcc_encode_chunking_compat(data.view(), config, chunk_shape)?;
+    let mut decompressed = Array::zeros(data.dim());
+    ebcc_decode_chunking_into(&compressed, decompressed.view_mut())?;
+
+    Ok(decompressed)
+}
+
+#[test]
+fn test_chunking_large_jpeg2000_only_with_non_divisible_chunks() -> EBCCResult<()> {
+    let data = large_chunking_data();
+    let config = EBCCConfig::jpeg2000_only(10.0);
+
+    let decompressed = chunking_roundtrip(&data, &config, VALID_NON_DIVISIBLE_CHUNK_SHAPES)?;
+
+    assert_eq!(decompressed.dim(), data.dim());
+    assert!(
+        max_abs_error(&data, &decompressed) < data_range(&data) * 0.15,
+        "JPEG2000-only chunking error is unexpectedly large",
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_chunking_large_max_error_bound_with_non_divisible_chunks() -> EBCCResult<()> {
+    let data = large_chunking_data();
+    let config_error = 0.5;
+    let config = EBCCConfig::max_absolute_error_bounded(config_error).with_base_cr(20.0);
+
+    let decompressed = chunking_roundtrip(&data, &config, VALID_NON_DIVISIBLE_CHUNK_SHAPES)?;
+    let max_error = max_abs_error(&data, &decompressed);
+    let tolerance = config_error * 0.02;
+
+    assert_eq!(decompressed.dim(), data.dim());
+    assert!(
+        max_error <= config_error + tolerance,
+        "Max error {max_error} exceeds error bound {config_error} + tolerance {tolerance}",
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_chunking_large_range_relative_error_bound_with_non_divisible_chunks() -> EBCCResult<()> {
+    let data = large_chunking_data();
+    let config_error = 0.01;
+    let config = EBCCConfig::relative_error_bounded(config_error).with_base_cr(20.0);
+
+    let decompressed = chunking_roundtrip(&data, &config, VALID_NON_DIVISIBLE_CHUNK_SHAPES)?;
+    let max_error = max_abs_error(&data, &decompressed);
+    let range_error_bound = data_range(&data) * config_error;
+
+    assert_eq!(decompressed.dim(), data.dim());
+    assert!(
+        max_error <= range_error_bound * (1.0 + 1e-4),
+        "Max error {max_error} exceeds range-relative bound {range_error_bound}",
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_chunking_compat_default_chunks_range_relative_error_bound() -> EBCCResult<()> {
+    let data = large_chunking_data();
+    let config_error = 0.01;
+    let config = EBCCConfig::relative_error_bounded(config_error).with_base_cr(20.0);
+
+    let decompressed = chunking_compat_roundtrip(&data, &config, EBCCCompatChunkShape::Auto)?;
+    let max_error = max_abs_error(&data, &decompressed);
+    let range_error_bound = data_range(&data) * config_error;
+    let tolerance = range_error_bound * 0.02;
+
+    assert_eq!(decompressed.dim(), data.dim());
+    assert!(
+        max_error <= range_error_bound + tolerance,
+        "Max error {max_error} exceeds compat range-relative bound {range_error_bound} + tolerance {tolerance}",
+    );
+
+    Ok(())
+}
+
+#[test]
+fn test_chunking_rejects_requested_chunks_below_tile_limit() {
+    let data = large_chunking_data();
+    let config = EBCCConfig::jpeg2000_only(10.0);
+
+    for chunk_shape in REQUESTED_INVALID_CHUNK_SHAPES {
+        let result = ebcc_encode_chunking(data.view(), &config, *chunk_shape);
+        assert!(
+            result.is_err(),
+            "Chunk shape {chunk_shape:?} should be rejected",
+        );
+    }
+}
+
+#[test]
+fn test_decode_chunking_rejects_same_len_wrong_shape() -> EBCCResult<()> {
+    #[expect(clippy::cast_precision_loss, clippy::suboptimal_flops)]
+    let data = Array::from_shape_fn((2, 32, 32), |(frame, y, x)| {
+        frame as f32 * 1024.0 + y as f32 * 32.0 + x as f32
+    });
+    let config = EBCCConfig::jpeg2000_only(10.0);
+    let compressed = ebcc_encode_chunking(data.view(), &config, [nz(1), nz(32), nz(32)])?;
+
+    let mut wrong_shape = Array::zeros((1, 64, 32));
+    let result = ebcc_decode_chunking_into(&compressed, wrong_shape.view_mut());
+
+    assert!(matches!(
+        result,
+        Err(EBCCError::InvalidInput(message))
+            if message.contains("Chunked EBCC data has shape [2, 32, 32]")
+    ));
 
     Ok(())
 }
