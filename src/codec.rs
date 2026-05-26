@@ -47,7 +47,7 @@ const CHUNKING_HEADER_LEN: usize = 80;
 ///   fit into memory
 /// - [`EBCCError::InvalidInput`] if the last two dimensions of `data` are too
 ///   small or its EBCC internal image dimensions are outside the supported range
-/// - [`EBCCError::InvalidConfig`] if [`config.validate`][`EBCCConfig.validate`]
+/// - [`EBCCError::InvalidConfig`] if [`config.validate`][EBCCConfig::validate]
 ///   fails
 /// - [`EBCCError::InvalidInput`] if the `data` contains any non-finite
 ///   (infinite or NaN) values
@@ -132,7 +132,7 @@ pub fn ebcc_encode(data: ArrayView<f32, EbccDim>, config: &EBCCConfig) -> EBCCRe
 /// - [`EBCCError::InvalidInput`] if `chunk_shape` has tile dimensions that are
 ///   too small or forms EBCC internal image dimensions outside the supported
 ///   range
-/// - [`EBCCError::InvalidConfig`] if [`config.validate`][`EBCCConfig.validate`]
+/// - [`EBCCError::InvalidConfig`] if [`config.validate`][EBCCConfig::validate]
 ///   fails
 /// - [`EBCCError::InvalidInput`] if the `data` contains any non-finite
 ///   (infinite or NaN) values
@@ -193,7 +193,7 @@ pub fn ebcc_encode_chunking(
 /// - [`EBCCError::InvalidInput`] if explicit `chunk_shape` has tile dimensions
 ///   that are too small or forms EBCC internal image dimensions outside the
 ///   supported range
-/// - [`EBCCError::InvalidConfig`] if [`config.validate`][`EBCCConfig.validate`]
+/// - [`EBCCError::InvalidConfig`] if [`config.validate`][EBCCConfig::validate]
 ///   fails
 /// - [`EBCCError::InvalidInput`] if the `data` contains any non-finite
 ///   (infinite or NaN) values
