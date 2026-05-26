@@ -27,8 +27,6 @@ pub enum EBCCCompatChunkShape {
     Explicit(EBCCChunkShape),
 }
 
-const CHUNKING_HEADER_LEN: usize = 80;
-
 /// Encode a 3D data array using EBCC compression.
 ///
 /// # Arguments
@@ -345,13 +343,12 @@ pub fn ebcc_decode_chunking_into(
         )));
     }
 
-    if let Some(encoded_dims) = read_dims_from_chunking_header(compressed_data)? {
-        let output_dims: [usize; EBCC_NDIMS] = decompressed_data.dim().into();
-        if output_dims != encoded_dims {
-            return Err(EBCCError::InvalidInput(format!(
-                "Chunked EBCC data has shape {encoded_dims:?} but output array has shape {output_dims:?}",
-            )));
-        }
+    let encoded_dims = read_dims_from_chunking_header(compressed_data)?;
+    let output_dims: [usize; EBCC_NDIMS] = decompressed_data.dim().into();
+    if output_dims != encoded_dims {
+        return Err(EBCCError::InvalidInput(format!(
+            "Chunked EBCC data has shape {encoded_dims:?} but output array has shape {output_dims:?}",
+        )));
     }
 
     let mut compressed_data_copy = Vec::from(compressed_data); // C function may modify the input
@@ -509,15 +506,11 @@ const fn ffi_config(
     }
 }
 
-fn read_dims_from_chunking_header(
-    compressed_data: &[u8],
-) -> EBCCResult<Option<[usize; EBCC_NDIMS]>> {
-    if compressed_data.len() < CHUNKING_HEADER_LEN {
-        return Ok(None);
-    }
-
+fn read_dims_from_chunking_header(compressed_data: &[u8]) -> EBCCResult<[usize; EBCC_NDIMS]> {
     let Some(mut compressed_data) = compressed_data.strip_prefix(EBCC_CHUNKING_HEADER_MAGIC) else {
-        return Ok(None);
+        return Err(EBCCError::DecompressionError(String::from(
+            "Missing EBCC chunking header",
+        )));
     };
 
     let reader = &mut compressed_data;
@@ -553,7 +546,7 @@ fn read_dims_from_chunking_header(
         })?;
     }
 
-    Ok(Some(dims))
+    Ok(dims)
 }
 
 fn read_u32_le(reader: &mut &[u8]) -> EBCCResult<u32> {
