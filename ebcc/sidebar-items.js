@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["EBCCError","EBCCResidualType"],"fn":["ebcc_decode_into","ebcc_encode"],"struct":["EBCCConfig"],"type":["EBCCResult"]};
+window.SIDEBAR_ITEMS = {"constant":["EBCC_NDIMS"],"enum":["EBCCCompatChunkShape","EBCCError","EBCCResidualType"],"fn":["ebcc_decode_chunking_into","ebcc_decode_into","ebcc_encode","ebcc_encode_chunking","ebcc_encode_chunking_compat"],"struct":["EBCCConfig"],"type":["EBCCChunkShape","EBCCResult","EbccDim"]};

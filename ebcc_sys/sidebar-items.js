@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["ebcc_decode","ebcc_encode","free_buffer"],"mod":["residual_t"],"struct":["codec_config_t"]};
+window.SIDEBAR_ITEMS = {"constant":["EBCC_CHUNKING_HEADER_MAGIC","EBCC_CHUNKING_HEADER_VERSION","EBCC_MAX_INTERNAL_IMAGE_DIM","EBCC_MIN_INTERNAL_IMAGE_DIM","EBCC_NDIMS"],"fn":["ebcc_decode","ebcc_decode_chunking","ebcc_encode","ebcc_encode_chunking","ebcc_encode_chunking_compat","free_buffer"],"mod":["residual_t"],"struct":["codec_config_t"]};
