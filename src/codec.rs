@@ -15,6 +15,18 @@ use crate::error::{EBCCError, EBCCResult};
 /// EBCC data dimension.
 pub type EbccDim = Dim<[Ix; EBCC_NDIMS]>;
 
+/// EBCC chunk shape.
+pub type EBCCChunkShape = [NonZeroUsize; EBCC_NDIMS];
+
+/// EBCC compat chunk shape.
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum EBCCCompatChunkShape {
+    /// EBCC chooses an appropriate chunk shape automatically.
+    Auto,
+    /// EBCC uses the provided explicit chunk shape.
+    Explicit(EBCCChunkShape),
+}
+
 const CHUNKING_HEADER_LEN: usize = 80;
 
 /// Encode a 3D data array using EBCC compression.
@@ -102,16 +114,22 @@ pub fn ebcc_encode(data: ArrayView<f32, EbccDim>, config: &EBCCConfig) -> EBCCRe
 
 /// Encode a 3D data array using EBCC chunked compression.
 ///
-/// `chunk_dims` controls the chunk shape used by EBCC.
+/// `chunk_shape` controls the chunk shape used by EBCC.
 /// Chunks may extend beyond the input dimensions.
 /// EBCC pads edge chunks by repeating boundary values.
 ///
-/// Range-relative error bounds are calculated independently for each chunk.
+/// <div class="warning">
+///
+/// **Warning:** Range-relative error bounds are calculated independently for
+/// each chunk. Use [`ebcc_encode_chunking_compat`] instead to preserve a
+/// range-relative error bound over the entire data.
+///
+/// </div>
 ///
 /// # Errors
 ///
 /// - [`EBCCError::InvalidInput`] if the `data` has any zero-size dimension
-/// - [`EBCCError::InvalidInput`] if `chunk_dims` has tile dimensions that are
+/// - [`EBCCError::InvalidInput`] if `chunk_shape` has tile dimensions that are
 ///   too small or forms EBCC internal image dimensions outside the supported
 ///   range
 /// - [`EBCCError::InvalidConfig`] if [`config.validate`][`EBCCConfig.validate`]
@@ -122,14 +140,14 @@ pub fn ebcc_encode(data: ArrayView<f32, EbccDim>, config: &EBCCConfig) -> EBCCRe
 pub fn ebcc_encode_chunking(
     data: ArrayView<f32, EbccDim>,
     config: &EBCCConfig,
-    chunk_dims: [NonZeroUsize; EBCC_NDIMS],
+    chunk_shape: EBCCChunkShape,
 ) -> EBCCResult<Vec<u8>> {
     validate_data_shape(data)?;
-    let chunk_dims = validate_chunk_dims(chunk_dims)?;
+    let chunk_shape = validate_chunk_shape(chunk_shape)?;
     config.validate()?;
     validate_only_finite_data(data)?;
 
-    let mut ffi_config = ffi_config(data.dim().into(), config, chunk_dims);
+    let mut ffi_config = ffi_config(data.dim().into(), config, chunk_shape);
     let mut data_copy: Vec<f32> = data.iter().copied().collect(); // C function may modify the input
 
     let mut out_buffer: *mut u8 = ptr::null_mut();
@@ -161,9 +179,10 @@ pub fn ebcc_encode_chunking(
 
 /// Encode a 3D data array using EBCC chunked compression in compatibility mode.
 ///
-/// Passing `None` for `chunk_dims` lets EBCC automatically choose the chunk
-/// dimensions. Passing `Some(chunk_dims)` uses the same validation rules as
-/// [`ebcc_encode_chunking`].
+/// Passing [`Auto`][EBCCCompatChunkShape::Auto] for `chunk_shape` lets EBCC
+/// automatically choose the chunk shape. Passing an
+/// [`Explicit`][EBCCCompatChunkShape::Explicit] `chunk_shape` uses the same
+/// validation rules as [`ebcc_encode_chunking`].
 ///
 /// In EBCC compatibility mode, range-relative error bounds are converted to
 /// absolute error bounds using the input data range before chunked encoding.
@@ -171,7 +190,7 @@ pub fn ebcc_encode_chunking(
 /// # Errors
 ///
 /// - [`EBCCError::InvalidInput`] if the `data` has any zero-size dimension
-/// - [`EBCCError::InvalidInput`] if explicit `chunk_dims` has tile dimensions
+/// - [`EBCCError::InvalidInput`] if explicit `chunk_shape` has tile dimensions
 ///   that are too small or forms EBCC internal image dimensions outside the
 ///   supported range
 /// - [`EBCCError::InvalidConfig`] if [`config.validate`][`EBCCConfig.validate`]
@@ -182,14 +201,14 @@ pub fn ebcc_encode_chunking(
 pub fn ebcc_encode_chunking_compat(
     data: ArrayView<f32, EbccDim>,
     config: &EBCCConfig,
-    chunk_dims: Option<[NonZeroUsize; EBCC_NDIMS]>,
+    chunk_shape: EBCCCompatChunkShape,
 ) -> EBCCResult<Vec<u8>> {
     validate_data_shape(data)?;
-    let chunk_dims = compat_chunk_dims(chunk_dims)?;
+    let chunk_shape = compat_chunk_shape(chunk_shape)?;
     config.validate()?;
     validate_only_finite_data(data)?;
 
-    let mut ffi_config = ffi_config(data.dim().into(), config, chunk_dims);
+    let mut ffi_config = ffi_config(data.dim().into(), config, chunk_shape);
     let mut data_copy: Vec<f32> = data.iter().copied().collect(); // C function may modify the input
 
     let mut out_buffer: *mut u8 = ptr::null_mut();
@@ -421,8 +440,8 @@ fn validate_regular_ebcc_shape(data: ArrayView<f32, EbccDim>) -> EBCCResult<()> 
     Ok(())
 }
 
-fn validate_chunk_dims(chunk_dims: [NonZeroUsize; EBCC_NDIMS]) -> EBCCResult<[usize; EBCC_NDIMS]> {
-    let [chunk_depth, chunk_height, chunk_width] = chunk_dims;
+fn validate_chunk_shape(chunk_shape: EBCCChunkShape) -> EBCCResult<[usize; EBCC_NDIMS]> {
+    let [chunk_depth, chunk_height, chunk_width] = chunk_shape;
     let Some(image_height) = chunk_depth.checked_mul(chunk_height) else {
         return Err(EBCCError::InvalidInput(String::from(
             "Chunk dimension overflow",
@@ -438,7 +457,7 @@ fn validate_chunk_dims(chunk_dims: [NonZeroUsize; EBCC_NDIMS]) -> EBCCResult<[us
         )));
     }
 
-    let Some(total_elements) = chunk_dims
+    let Some(total_elements) = chunk_shape
         .iter()
         .try_fold(1usize, |acc, &d| acc.checked_mul(d.get()))
     else {
@@ -453,17 +472,13 @@ fn validate_chunk_dims(chunk_dims: [NonZeroUsize; EBCC_NDIMS]) -> EBCCResult<[us
         )));
     }
 
-    Ok(chunk_dims.map(NonZeroUsize::get))
+    Ok(chunk_shape.map(NonZeroUsize::get))
 }
 
-fn compat_chunk_dims(
-    chunk_dims: Option<[NonZeroUsize; EBCC_NDIMS]>,
-) -> EBCCResult<[usize; EBCC_NDIMS]> {
-    if let Some(chunk_dims) = chunk_dims {
-        validate_chunk_dims(chunk_dims)?;
-        Ok(chunk_dims.map(NonZeroUsize::get))
-    } else {
-        Ok([0; EBCC_NDIMS])
+fn compat_chunk_shape(chunk_shape: EBCCCompatChunkShape) -> EBCCResult<[usize; EBCC_NDIMS]> {
+    match chunk_shape {
+        EBCCCompatChunkShape::Auto => Ok([0; EBCC_NDIMS]),
+        EBCCCompatChunkShape::Explicit(chunk_shape) => validate_chunk_shape(chunk_shape),
     }
 }
 
@@ -482,7 +497,7 @@ fn validate_only_finite_data(data: ArrayView<f32, EbccDim>) -> EBCCResult<()> {
 const fn ffi_config(
     dims: [usize; EBCC_NDIMS],
     config: &EBCCConfig,
-    chunk_dims: [usize; EBCC_NDIMS],
+    chunk_shape: [usize; EBCC_NDIMS],
 ) -> ebcc_sys::codec_config_t {
     ebcc_sys::codec_config_t {
         dims,
@@ -490,7 +505,7 @@ const fn ffi_config(
         residual_compression_type: config.residual_compression_type.as_residual(),
         residual_cr: 1.0, // Default value for removed field
         error: config.residual_compression_type.as_error(),
-        chunk_dims,
+        chunk_dims: chunk_shape,
     }
 }
 
