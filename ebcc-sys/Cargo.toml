@@ -1,6 +1,6 @@
 [package]
 name = "ebcc-sys"
-version = "0.3.0+ebcc.0.1.4"
+version = "0.3.1-alpha+ebcc.0.1.5-alpha"
 edition = { workspace = true }
 authors = { workspace = true }
 repository = { workspace = true }
